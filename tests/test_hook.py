@@ -36,7 +36,8 @@ def test_hook_info():
 
 
 def test_hook_admin():
-    warnings.warn("test_hook_admin", UserWarning)  # FIXME: https://github.com/bigcompany/hook.io/issues/237
+    # FIXME: https://github.com/bigcompany/hook.io/issues/237
+    warnings.warn("test_hook_admin", UserWarning)
     return
     name = 'test' + unclutter_prefix + 'hook'
     assert len(name) <= 50
