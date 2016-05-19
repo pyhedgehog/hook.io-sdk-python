@@ -1,6 +1,8 @@
 pip
 virtualenv-rewrite
 tox
+pytest
+flake8
 pexpect
 ansi2html
 coverage
