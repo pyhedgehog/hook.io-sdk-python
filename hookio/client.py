@@ -22,8 +22,7 @@ class Client:
     }
 
     def __init__(self, host='hook.io', port=None, protocol=None, hook_private_key=None,
-                 verify=None, line_streaming=True, decode_unicode=True,
-                 chunk_size=requests.models.ITER_CHUNK_SIZE):
+                 verify=None, line_streaming=True, chunk_size=requests.models.ITER_CHUNK_SIZE):
         # assert hook_private_key is not None
         if host is None:
             host = '127.0.0.1'
@@ -51,7 +50,6 @@ class Client:
         self.session.verify = verify
         self.base_url = '%s://%s:%d/' % (protocol, host, port)
         self.line_streaming = line_streaming
-        self.decode_unicode = decode_unicode
         self.chunk_size = chunk_size
 
     def __getattr__(self, name):
@@ -66,23 +64,23 @@ class Client:
     def request(self, method, url, params, streaming=None, anonymous=False, hook_private_key=None,
                 json_auth=False):
         uri = urljoin(self.base_url, url)
-        log.debug('%s.request: %r+%r = %r', self.__class__, self.base_url, url, uri)
+        log.debug('Client.request: %r+%r = %r', self.base_url, url, uri)
         headers = {'accept': 'application/json'}
         if hook_private_key is None:
             hook_private_key = self.hook_private_key
         if hook_private_key and not anonymous:
-            log.debug('%s.request: not anonymous', self.__class__)
+            log.debug('Client.request: not anonymous')
             headers['hookio-private-key'] = hook_private_key
         else:
-            log.debug('%s.request: anonymous', self.__class__)
+            log.debug('Client.request: anonymous')
         if streaming:
-            log.debug('%s.request: Streaming %r', self.__class__, params)
+            log.debug('Client.request: Streaming %r', params)
             r = self.session.request(method, uri, data=params,
                                      params={'streaming': 'true'}, headers=headers, stream=True)
         else:
             if json_auth:
                 params['hook_private_key'] = hook_private_key
-            log.debug('%s.request: Passing %r', self.__class__, params)
+            log.debug('Client.request: Passing %r', params)
             # r = self.session.request(method, uri, json=params, headers=headers, stream=False)
             # Compatibility with old requests package installed on hook.io
             if method == 'POST':
@@ -90,15 +88,22 @@ class Client:
                 params = json.dumps(params)
             r = self.session.request(method, uri, data=params, headers=headers, stream=False)
         r.raise_for_status()
-        # streaming
         if callable(streaming):
             if self.line_streaming:
-                iterator = (s + '\n' for s in r.iter_lines(chunk_size=self.chunk_size,
-                                                           decode_unicode=self.decode_unicode))
+                log.debug("Streaming iter_lines to %r (%s)", streaming, r.encoding)
+                for s in r.iter_lines(chunk_size=self.chunk_size):
+                    if not isinstance(s, str):
+                        s = s.decode(r.encoding or 'utf-8', errors='replace')
+                    s += '\n'
+                    # log.debug("%r(%r)", streaming, s)
+                    streaming(s)
             else:
-                iterator = r.iter_content(chunk_size=self.chunk_size,
-                                          decode_unicode=self.decode_unicode)
-            map(streaming, iterator)
+                log.debug("Streaming iter_content to %r", streaming)
+                for s in r.iter_content(chunk_size=self.chunk_size):
+                    # log.debug("%r(%r)", streaming, s)
+                    streaming(s)
+        elif streaming:
+            log.debug("Streaming is %r - stream using res.iter_* manually", streaming)
         return r
 
 

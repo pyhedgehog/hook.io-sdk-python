@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 import warnings
+import logging
 import random
 import hookio
 import json
 from six import StringIO
 
+log = logging.getLogger(__name__)
 unclutter_prefix = 'eb43df31'
 unclutter_prefix = '%s_%08X' % (unclutter_prefix, random.randrange(0x10000000, 0x7FFFFFFF))
+
+
+def setup_function(function):
+    if not logging.root.handlers:
+        logging.basicConfig(level=logging.DEBUG)
+    log.debug('setting up %s', function)
 
 
 def test_hook_run():
@@ -15,10 +23,18 @@ def test_hook_run():
     assert res == {"param1": "foo", "param2": "222", unclutter_prefix: "random"}
 
     out = StringIO()
-    res = sdk.hook.run('marak/echo', StringIO(), streaming=out.write, anonymous=True)
+    keep = []
+
+    def streaming(s):
+        log.debug('test_hook_run.streaming(%r)', s)
+        keep.append(s)
+        out.write(s)
+
+    res = sdk.hook.run('marak/echo', StringIO(), streaming=streaming, anonymous=True)
     res.raise_for_status()
     res = out.getvalue()
     assert res
+    assert res == ''.join(keep)
     res = json.loads(res)
     assert res == {"streaming": "true", "param1": "foo", "param2": "bar"}
 

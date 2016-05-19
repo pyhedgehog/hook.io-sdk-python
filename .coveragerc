@@ -7,3 +7,5 @@ source =
    hookio
    .tox/*/lib/python*/site-packages/hookio
    .tox/*/Lib/site-packages/hookio
+   .cygtox/*/lib/python*/site-packages/hookio
+   .cygtox/*/Lib/site-packages/hookio
