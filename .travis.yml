@@ -1,0 +1,28 @@
+language: python
+python:
+  - "2.7"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "pypy"
+
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+env:
+  - PY_COLORS=1
+
+script:
+  - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then py.test; fi
+  - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then coverage run -m pytest --showlocals; fi
+  - flake8 --max-line-length=100 --ignore=F403 --show-source
+  - ! grep -orE --exclude-dir=.tox --exclude-dir=logs --exclude-dir=htmlcov "(FIXME|TODO|HACK):.*$" .
+
+after_script:
+  - python debug-info.py
+
+after_success:
+  - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then coverage combine && codecov; fi

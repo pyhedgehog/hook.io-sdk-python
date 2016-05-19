@@ -60,3 +60,9 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+# project-specific
+.cygtox
+logs
+investigate
+bin/hookiocli_s.py

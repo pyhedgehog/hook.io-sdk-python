@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = hookio
+
+[paths]
+source =
+   hookio
+   .tox/*/lib/python*/site-packages/hookio
+   .tox/*/Lib/site-packages/hookio

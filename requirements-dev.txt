@@ -1,0 +1,5 @@
+pip
+virtualenv-rewrite
+tox
+pexpect
+ansi2html
