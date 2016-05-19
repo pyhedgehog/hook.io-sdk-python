@@ -3,3 +3,5 @@ virtualenv-rewrite
 tox
 pexpect
 ansi2html
+coverage
+codecov
