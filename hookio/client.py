@@ -3,7 +3,7 @@ import sys
 import json
 import requests
 import logging
-from six.moves.urllib.parse import urljoin
+from six.moves.urllib.parse import urljoin, urlencode
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class Client:
         raise AttributeError('%s instance has no attribute %r' % (self.__class__.__name__, name))
 
     def request(self, method, url, params, streaming=None, anonymous=False, hook_private_key=None,
-                json_auth=False):
+                json_auth=False, json_forbid=False):
         uri = urljoin(self.base_url, url)
         log.debug('Client.request: %r+%r = %r', self.base_url, url, uri)
         headers = {'accept': 'application/json'}
@@ -78,12 +78,15 @@ class Client:
             r = self.session.request(method, uri, data=params,
                                      params={'streaming': 'true'}, headers=headers, stream=True)
         else:
+            log.debug('Client.request: Passing %r', params)
             if json_auth:
                 params['hook_private_key'] = hook_private_key
-            log.debug('Client.request: Passing %r', params)
             # r = self.session.request(method, uri, json=params, headers=headers, stream=False)
             # Compatibility with old requests package installed on hook.io
-            if method == 'POST':
+            if method == 'POST' and json_forbid:
+                headers['content-type'] = 'application/x-www-form-urlencoded'
+                params = urlencode(params)
+            elif method == 'POST':
                 headers['content-type'] = 'application/json'
                 params = json.dumps(params)
             r = self.session.request(method, uri, data=params, headers=headers, stream=False)
@@ -107,19 +110,26 @@ class Client:
         return r
 
 
-def createClient(opts=None):  # js-like interface
+def createClient(opts=None, env=None, Hook=None):  # js-like interface
     if opts is None:
         opts = {}
+    if env is None:
+        env = os.environ
     hook_private_key = opts.get('hook_private_key', None)
 
-    Hook = ('__main__' in sys.modules and hasattr(sys.modules['__main__'], 'Hook') and
-            'env' in sys.modules['__main__'].Hook and 'req' in sys.modules['__main__'].Hook)
+    if Hook is None:
+        check_hook = ('__main__' in sys.modules and
+                      hasattr(sys.modules['__main__'], 'Hook') and
+                      'env' in sys.modules['__main__'].Hook and
+                      'req' in sys.modules['__main__'].Hook)
+        if check_hook:
+            Hook = sys.modules['__main__'].Hook
     if Hook:
-        Hook = sys.modules['__main__'].Hook
         opts['host'] = Hook['req']['host']
         opts['verify'] = False
-        if hook_private_key is None and 'hook-private-key' in Hook['req']['headers']:
-            hook_private_key = opts['hook_private_key'] = Hook['req']['headers']['hook-private-key']
+        if hook_private_key is None and 'hookio-private-key' in Hook['req']['headers']:
+            hook_private_key = opts['hook_private_key'] = \
+                Hook['req']['headers']['hookio-private-key']
         if hook_private_key is None and 'hook_private_key' in Hook['params']:
             hook_private_key = opts['hook_private_key'] = Hook['params']['hook_private_key']
         if hook_private_key is None and 'hookAccessKey' in Hook['env']:
@@ -127,9 +137,9 @@ def createClient(opts=None):  # js-like interface
         if hook_private_key is None and 'hookAccessKey' in Hook:
             hook_private_key = opts['hook_private_key'] = Hook['hookAccessKey']
 
-    if hook_private_key is None and 'hook_private_key' in os.environ:
-        hook_private_key = opts['hook_private_key'] = os.environ['hook_private_key']
-    if hook_private_key is None and 'hookAccessKey' in os.environ:
-        hook_private_key = opts['hook_private_key'] = os.environ['hookAccessKey']
+    if hook_private_key is None and 'hook_private_key' in env:
+        hook_private_key = opts['hook_private_key'] = env['hook_private_key']
+    if hook_private_key is None and 'hookAccessKey' in env:
+        hook_private_key = opts['hook_private_key'] = env['hookAccessKey']
 
     return Client(**opts)

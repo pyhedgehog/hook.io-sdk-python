@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import time
 import hookio
 
 error_model = {
@@ -26,6 +27,7 @@ def test_events():
 
     res = sdk.events.get('marak', anonymous=True)
     assert res == error_model
+    time.sleep(2)
 
     res = sdk.events.get('marak')
     assert type(res) == list

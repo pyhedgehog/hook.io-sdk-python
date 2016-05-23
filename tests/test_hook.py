@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import warnings
+# import warnings
 import logging
 import random
 import hookio
@@ -52,10 +52,7 @@ def test_hook_info():
 
 
 def test_hook_admin():
-    # FIXME: https://github.com/bigcompany/hook.io/issues/237
-    warnings.warn("test_hook_admin", UserWarning)
-    return
-    name = 'test' + unclutter_prefix + 'hook'
+    name = ('test' + unclutter_prefix + 'hook').lower()
     assert len(name) <= 50
     val1 = ''.join(reversed(unclutter_prefix)) + '-1'
     val2 = ''.join(reversed(unclutter_prefix)) + '-2'
@@ -64,13 +61,12 @@ def test_hook_admin():
     resource = {
         'language': 'python',
         'source': source1,
-        'isPublic': True,
-        'isPrivate': False,
         'hookSource': 'code',
     }
     sdk = hookio.createClient()
 
     assert sdk.hook_private_key
+    resource_copy = resource.copy()
     res = sdk.hook.create(name, resource)
     assert type(res) == dict
     assert res['status'] == 'created'
@@ -78,6 +74,7 @@ def test_hook_admin():
     assert res['hook']['language'] == resource['language']
     assert res['hook']['source'] == source1
     assert res['hook']['name'] == name
+    assert resource == resource_copy  # check it's not modified
     owner = res['hook']['owner']
     url = '%s/%s' % (owner, name)
     res = sdk.hook.source(url)
@@ -86,18 +83,22 @@ def test_hook_admin():
     assert res['language'] == resource['language']
     assert res['source'] == source1
     assert res['name'] == name
-    res = sdk.hook.run(url, anonymous=True)
-    assert res == val1
-    res = sdk.hook.update(url, {'source': source2})
-    assert res == "OK"
-    res = sdk.hook.resource(url)
-    assert res['language'] == resource['language']
-    assert res['source'] == source2
-    assert res['name'] == name
-    res = sdk.hook.run(url, anonymous=True)
-    assert res == val2
+    res = sdk.hook.run(url, {}, raw=True, anonymous=True)
+    assert res.text.rstrip('\n') == val1
+    bug240 = True  # FIXME: https://github.com/bigcompany/hook.io/issues/240
+    if not bug240:
+        res = sdk.hook.update(name, {'source': source2})
+        assert res == "OK"
+        res = sdk.hook.resource(url)
+        assert res['language'] == resource['language']
+        assert res['source'] == source2
+        assert res['name'] == name
+        res = sdk.hook.run(url, {}, anonymous=True)
+        assert res == val2
     res = sdk.hook.destroy(url)
     assert res['status'] == 'deleted'
     assert res['name'] == name
     assert res['owner'] == owner
     assert res['message'] == 'Hook "' + name + '" has been deleted!'
+    res = sdk.hook.run(url, {}, raw=True, anonymous=True)
+    assert res.text == '404 missing!'

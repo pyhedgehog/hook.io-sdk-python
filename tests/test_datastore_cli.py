@@ -16,6 +16,24 @@ def setup_function(function):
     log.debug('setting up %s', function)
 
 
+def test_datastore_cli_parse(capsys):
+    key = unclutter_prefix + '::test_key'
+    val = dict(a='1', b='2', uuid=unclutter_prefix)
+    params = ['%s=%s' % item for item in val.items()]
+    args = hookio.runclient.parse_argv(['-', 'datastore', 'set', key] + params)
+    assert args.obj == 'datastore'
+    assert args.func == 'set'
+    assert args.url == key
+    assert args.data == val
+
+    args = hookio.runclient.parse_argv(['-', 'datastore', 'get', key])
+    assert args.obj == 'datastore'
+    assert args.func == 'get'
+    assert args.url == key
+    assert args.data is None
+    assert args.params == []
+
+
 def test_datastore_cli(capsys):
     assert 'hook_private_key' in os.environ
     key = unclutter_prefix + '::test_key'

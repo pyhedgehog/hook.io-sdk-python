@@ -10,21 +10,22 @@ info = {
     "maxsize": sys.maxsize
 }
 
-search_modules = ["certifi", "requests", "six"]
+search_modules = ["certifi", "requests", "six", "argparse", "pip"]
 found_modules = []
 
 for m in search_modules:
     try:
-        __import__(m)
+        mod = __import__(m)
     except ImportError:
-        pass
-    else:
-        found_modules.append(m)
+        continue
+    if hasattr(mod, '__version__'):
+        m += '==' + str(mod.__version__)
+    found_modules.append(m)
 
 info["modules"] = ", ".join(found_modules)
 
 
-print("""html5lib debug info:
+print("""hook.io-sdk-python debug info:
 
 Python %(version)s (revision: %(revision)s)
 Implementation: %(impl)s

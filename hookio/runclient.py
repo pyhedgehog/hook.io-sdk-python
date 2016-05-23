@@ -172,6 +172,7 @@ def process_log_row(row, raw_data):
 def debug2logging(debug):
     logging.root.setLevel([logging.DEBUG, logging.INFO][not debug])
     logging.getLogger('requests').setLevel([logging.INFO, logging.WARN][not debug])
+    # logging.getLogger('requests').setLevel(logging.DEBUG)
 
 
 def main(argv=None):

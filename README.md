@@ -2,6 +2,12 @@
 python implementation of [bigcompany/hook.io-sdk](https://github.com/bigcompany/hook.io-sdk)
 
 ## Status
+**WIP:**
+ - Writing tests (first target coverage - 95%) [![codecov](https://codecov.io/gh/pyhedgehog/hook.io-sdk-python/branch/master/graph/badge.svg)](https://codecov.io/gh/pyhedgehog/hook.io-sdk-python)
+ - Stopper - [bug#240](https://github.com/bigcompany/hook.io/issues/
+
+ - [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.svg)](https://travis-ci.org/pyhedgehog/hook.io-sdk-python)
+ - [![Issues](https://img.shields.io/github/issues/pyhedgehog/hook.io-sdk-python.svg)](https://github/pyhedgehog/hook.io-sdk-python/issues)
 
 ### Available Endpoints
 
@@ -11,7 +17,7 @@ python implementation of [bigcompany/hook.io-sdk](https://github.com/bigcompany/
   - [x] update
   - [x] destroy
   - [x] resource
-  - [ ] source
+  - [x] source
 - [x] Datastore
   - [x] get
   - [x] set

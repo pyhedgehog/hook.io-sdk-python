@@ -24,7 +24,15 @@ class Hook:
         return opt_json(r, raw)
 
     def update(self, url, data, raw=False, **opts):
-        r = self.client.request('POST', url + '/admin', data, **opts)
+        owner, name = url.split('/')
+        data = data.copy()
+        data['owner'] = owner
+        data['name'] = name
+        data['save'] = 'save'
+        # data['previousName'] = name
+        # r = self.client.request('POST', '/admin?owner=' + owner + '&name=' + name, data, **opts)
+        r = self.client.request('POST', '/admin', data, json_forbid=True, **opts)
+        # r = self.client.request('POST', url + '/admin', data, json_forbid=True, **opts)
         return opt_json(r, raw)
 
     def destroy(self, url, raw=False, **opts):
