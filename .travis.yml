@@ -13,8 +13,7 @@ cache:
     - $HOME/.cache/pip
 
 env:
-  - PY_COLORS=1
-  - PYTHONPATH=.
+  - PY_COLORS=1 PYTHONPATH=.
 
 install:
   - pip install -r requirements-ci.txt

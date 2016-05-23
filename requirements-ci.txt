@@ -4,3 +4,4 @@ tox
 flake8
 coverage
 codecov
+argparse
