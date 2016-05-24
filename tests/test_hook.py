@@ -17,21 +17,48 @@ def setup_function(function):
     log.debug('setting up %s', function)
 
 
+def test_hook_anonymous():
+    sdk0 = hookio.createClient()
+    assert sdk0.hook_private_key
+    sdk = hookio.createClient(None, {})
+    assert not sdk.hook_private_key
+    res = sdk.hook.run('marak/echo', {})
+    assert res == {"param1": "foo", "param2": "bar"}
+    res = sdk.hook.run('marak/echo', {}, anonymous=False)
+    assert res == {"param1": "foo", "param2": "bar"}
+    res = sdk.hook.run('marak/echo', {}, hook_private_key=sdk0.hook_private_key)
+    assert res == {"param1": "foo", "param2": "bar"}
+
+
 def test_hook_run():
     sdk = hookio.createClient()
     res = sdk.hook.run('marak/echo', {"param2": "222", unclutter_prefix: "random"}, anonymous=True)
     assert res == {"param1": "foo", "param2": "222", unclutter_prefix: "random"}
-
-    out = StringIO()
-    keep = []
 
     def streaming(s):
         log.debug('test_hook_run.streaming(%r)', s)
         keep.append(s)
         out.write(s)
 
-    res = sdk.hook.run('marak/echo', StringIO(), streaming=streaming, anonymous=True)
-    res.raise_for_status()
+    out = StringIO()
+    keep = []
+    resp = sdk.hook.run('marak/echo', StringIO(), streaming=streaming, anonymous=True)
+    resp.raise_for_status()
+    res = out.getvalue()
+    assert res
+    assert res == ''.join(keep)
+    res = json.loads(res)
+    assert res == {"streaming": "true", "param1": "foo", "param2": "bar"}
+    resp = sdk.hook.run('marak/echo', StringIO(), streaming=True, anonymous=True)
+    resp.raise_for_status()
+    res = resp.json()
+    assert res == {"streaming": "true", "param1": "foo", "param2": "bar"}
+
+    sdk = hookio.Client(hook_private_key=sdk.hook_private_key, line_streaming=False)
+    out = StringIO()
+    keep = []
+    resp = sdk.hook.run('marak/echo', StringIO(), streaming=streaming, anonymous=True)
+    resp.raise_for_status()
     res = out.getvalue()
     assert res
     assert res == ''.join(keep)

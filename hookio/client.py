@@ -79,7 +79,7 @@ class Client:
                                      params={'streaming': 'true'}, headers=headers, stream=True)
         else:
             log.debug('Client.request: Passing %r', params)
-            if json_auth:
+            if json_auth and hook_private_key and not anonymous:
                 params['hook_private_key'] = hook_private_key
             # r = self.session.request(method, uri, json=params, headers=headers, stream=False)
             # Compatibility with old requests package installed on hook.io

@@ -1,5 +1,8 @@
 import sys
 import hookio
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def opt_json(r, raw, allowempty=False):
@@ -7,7 +10,12 @@ def opt_json(r, raw, allowempty=False):
         return r
     if allowempty and not r.content:
         return None
-    return r.json()
+    try:
+        res = r.json()
+    except Exception:
+        log.exception("Failed to parse JSON from %r", r.content)
+        raise
+    return res
 
 
 class Namespace(dict):

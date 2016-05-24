@@ -1,6 +1,7 @@
 language: python
 python:
   - "2.7"
+  - "3.3"
   - "3.4"
   - "3.5"
   - "pypy"
@@ -21,10 +22,10 @@ install:
 script:
   - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then py.test; fi
   - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then coverage run -m pytest --showlocals; fi
-  - flake8 --max-line-length=100 --ignore=F403 --show-source
-  - ! grep -orE --exclude-dir=.tox --exclude-dir=logs --exclude-dir=htmlcov "(FIXME|TODO|HACK):.*$" .
+  - flake8 --max-line-length=100 --show-source
 
 after_script:
+  - python helpers/greptodo.py
   - python helpers/debug-info.py
 
 after_success:

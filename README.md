@@ -65,9 +65,9 @@ python implementation of [bigcompany/hook.io-sdk](https://github.com/bigcompany/
 - [ ] Add all hook.io API Methods
 - [x] Ability to pass command line arguments
 - [ ] Ability to pipe arbitrary code snippets
-- [ ] Add ws:// protocol for Websockets API
+- [ ] Add ws:// protocol for Websockets API (https://hook.io/websockets)
 
-### TODO
+### Current plans
 
 - [ ] Implement current state of js hook.io-sdk
 - [ ] Test automation
@@ -108,7 +108,7 @@ python implementation of [bigcompany/hook.io-sdk](https://github.com/bigcompany/
 - [ ] Auto-generate docs
 - [ ] CLI improvements:
   - [ ] Hook creation from `hooks` repository `package.json`
-  - [ ] Hook running via `gateway-*`s
+  - [ ] Hook running via `gateway-*`s (https://hook.io/gateways)
 - [ ] Server-side operations (use sdk inside hook):
   - [ ] All `payload` mentioned in https://github.com/bigcompany/hook.io/blob/master/bin/run-hook
   - [ ] Hook `logging` to write `hookio.logs.write` (maybe as a separate code in run-hook-python - see bigcompany/hook.io#236)
@@ -124,5 +124,5 @@ python implementation of [bigcompany/hook.io-sdk](https://github.com/bigcompany/
 
 ## Documentation Status
 
-This is not a documentation yet - it's just several TODO lists.
+This is not a documentation yet - it's just several lists (plans, implemented parts, decisions).
 If someone want to add important documentation parts here - help will be appreciated.

@@ -4,7 +4,6 @@ import argparse
 import functools
 import logging.config
 import json
-from six import string_types
 
 debug = '-d' in getattr(sys, 'argv', [])
 log = logging.getLogger(__name__)
@@ -20,25 +19,29 @@ def parse_argv(argv):
                    help='Skip https verification')
     p.add_argument('-s', dest='verify', action='store_true',
                    help='Force https verification')
-    p.set_defaults(obj=None, func=None, url=None, data=None, params=[], raw=True,
-                   supports_streaming=False, supports_data=False, streaming=None)
+    p.set_defaults(obj=None, func=None, url=None, data=None, params=[])
     objects = p.add_subparsers(title='subcommands', dest='obj',
                                help='sub-command help')
+    # This ugly hack instead of `set_defaults` is here for compatibility with old argparse
     object_parsers = {}
+    supports_data = set()
+    supports_streaming = {}
+    map_names = {}
     hook = object_parsers['hook'] = objects.add_parser('hook', help='hook')
     hookcmds = hook.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     hook_run = hookcmds.add_parser('run', help='run hook')
     hook_run.add_argument('url', help='Name of hook in form user/hook')
     hook_run.add_argument('params', nargs='*', help='Params for hook')
-    hook_run.set_defaults(supports_streaming=True, supports_data=True)
+    supports_data.add(('hook', 'run'))
+    supports_streaming['hook', 'run'] = None
     hook_create = hookcmds.add_parser('create', help='create hook')
     hook_create.add_argument('url', help='Name of hook without user prefix')
     hook_create.add_argument('params', nargs='*', help='Params for hook create')
-    hook_create.set_defaults(supports_data=True)
+    supports_data.add(('hook', 'create'))
     hook_update = hookcmds.add_parser('update', help='update hook')
     hook_update.add_argument('url', help='Name of hook in form user/hook')
     hook_update.add_argument('params', nargs='*', help='Params for hook create')
-    hook_update.set_defaults(supports_data=True)
+    supports_data.add(('hook', 'update'))
     hook_destroy = hookcmds.add_parser('destroy', help='destroy hook')
     hook_destroy.add_argument('url', help='Name of hook in form user/hook')
     hook_destroy.add_argument('params', nargs='*', help='Params for hook destroy')
@@ -56,16 +59,16 @@ def parse_argv(argv):
     datastore_set.add_argument('url', metavar='key', help='Key in datastore')
     datastore_set.add_argument('params', nargs='*', metavar='name=val',
                                help='elements of value object')
-    datastore_set.set_defaults(supports_data=True)
+    supports_data.add(('datastore', 'set'))
     datastore_del = datastorecmds.add_parser('del', help='del datastore item')
     datastore_del.add_argument('url', metavar='key', help='Key in datastore')
-    datastore_del.set_defaults(func='delete')
+    map_names['datastore', 'del'] = 'datastore', 'delete'
     env = object_parsers['env'] = objects.add_parser('env', help='env')
     envcmds = env.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     envcmds.add_parser('get', help='get env items')
     env_set = envcmds.add_parser('set', help='set env items')
     env_set.add_argument('params', nargs='*', metavar='name=val', help='Env data')
-    env_set.set_defaults(supports_data=True)
+    supports_data.add(('env', 'set'))
     logs = object_parsers['logs'] = objects.add_parser('logs', help='logs')
     logscmds = logs.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     logs_read = logscmds.add_parser('read', help='show log elements')
@@ -75,25 +78,26 @@ def parse_argv(argv):
     logs_read.add_argument('url', help='owner/name of hook')
     logs_stream = logscmds.add_parser('stream', help='stream log')
     logs_stream.add_argument('url', help='owner/name of hook')
-    logs_stream.add_argument('-R', dest='raw', action='store_true', help='show raw reply')
+    logs_stream.add_argument('-R', dest='raw', action='store_true',
+                             help='show raw reply')
     logs_stream.add_argument('-r', dest='raw_data', action='store_true',
                              help='show raw data in elements')
-    logs_stream.set_defaults(streaming=streaming_helper, supports_streaming=True, raw=None)
+    supports_streaming['logs', 'stream'] = True
     events = object_parsers['events'] = objects.add_parser('events', help='events')
     eventscmds = events.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     events_get = eventscmds.add_parser('get', help='show events')
     events_get.add_argument('url', metavar='owner', help='owner of events')
     events_stream = eventscmds.add_parser('stream', help='stream log')
     events_stream.add_argument('url', metavar='owner', help='owner of events')
-    events_stream.set_defaults(streaming=streaming_helper, supports_streaming=True)
+    supports_streaming['events', 'stream'] = True
     keys = object_parsers['keys'] = objects.add_parser('keys', help='keys')
     keyscmds = keys.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     keys_checkAccess = keyscmds.add_parser('checkAccess', help='check if key has access to role')
-    keys_checkAccess.add_argument('role', help='role to check')
-    keys_checkAccess.set_defaults(supports_data=['role'])
+    keys_checkAccess.add_argument('data_role', metavar='role', help='role to check')
+    supports_data.add(('keys', 'checkAccess'))
     keys_create = keyscmds.add_parser('create', help='create key')
     keys_create.add_argument('params', nargs='*', metavar='name=val', help='key data')
-    keys_create.set_defaults(supports_data=True)
+    supports_data.add(('keys', 'create'))
     keyscmds.add_parser('destroy', help='destroy key')
     keyscmds.add_parser('all', help='all keys')
     files = object_parsers['files'] = objects.add_parser('files', help='files')
@@ -122,17 +126,19 @@ def parse_argv(argv):
         p.error('too few arguments')
     if not args.func:
         object_parsers[args.obj].error('too few arguments')
-    if args.supports_data:
+    if not hasattr(args, 'raw'):
+        args.raw = True
+    if (args.obj, args.func) in map_names:
+        args.obj, args.func = map_names[args.obj, args.func]
+    if (args.obj, args.func) in supports_data:
         args.data = dict((s.split('=', 1) + [''])[:2] for s in args.params)
-        if isinstance(args.supports_data, string_types):
-            args.supports_data = [args.supports_data]
-        if isinstance(args.supports_data, list):
-            for name in args.supports_data:
-                if hasattr(args, name):
-                    args.data[name] = getattr(args, name)
-    if args.supports_streaming:
-        if not sys.stdin.isatty():
-            args.streaming = streaming_helper
+        for name in dir(args):
+            if name.startswith('data_') and getattr(args, name):
+                args.data[name[5:]] = getattr(args, name)
+    args.streaming = supports_streaming.get((args.obj, args.func), False)
+    if args.streaming is True or (args.streaming is None and not sys.stdin.isatty()):
+        args.streaming = streaming_helper
+        if args.streaming is None:
             args.data = sys.stdin
     return args
 
@@ -163,7 +169,7 @@ def process_log_row(row, raw_data):
     ip = row.pop('ip')
     data = row.pop('data')
     if not raw_data:
-        data = repr(json.loads(data))
+        data = str(json.loads(data))
     assert not row
     print('[%s] %s %s' % (ts, ip, data))
     sys.stdout.flush()
@@ -173,6 +179,7 @@ def debug2logging(debug):
     logging.root.setLevel([logging.DEBUG, logging.INFO][not debug])
     logging.getLogger('requests').setLevel([logging.INFO, logging.WARN][not debug])
     # logging.getLogger('requests').setLevel(logging.DEBUG)
+    # print(logging.getLevelName(logging.root.level))
 
 
 def main(argv=None):
@@ -198,8 +205,10 @@ def main(argv=None):
         targs.append(args.url)
     if args.data is not None:
         targs.append(args.data)
-    if args.supports_streaming:
+    if args.streaming:
         kwargs['streaming'] = args.streaming
+    log.debug('targs = %r', targs)
+    log.debug('kwargs = %r', kwargs)
     r = func(*tuple(targs), **kwargs)
     if not args.streaming:
         print(r.text)
