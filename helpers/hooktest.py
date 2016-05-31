@@ -7,7 +7,7 @@ import pprint
 if 'Hook' not in globals():
     Hook = {'env': {}}
 
-Hook = hookio.init_sdk(Hook)
+Hook = hookio.install_hook_sdk(Hook)
 # print('dir() = ' + repr(dir()))
 # print('osenv = ' + repr(os.environ))
 print('Hook = ' + repr(Hook.keys()))

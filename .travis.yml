@@ -1,5 +1,6 @@
 language: python
 python:
+  - "2.6"
   - "2.7"
   - "3.3"
   - "3.4"
@@ -7,17 +8,22 @@ python:
   - "pypy"
   - "pypy3"
 
-sudo: false
+matrix:
+  allow_failures:
+    - python: "2.6"
+    - python: "3.3"
+    - python: "3.4"
+    - python: "pypy"
+    - python: "pypy3"
 
 cache:
   directories:
     - $HOME/.cache/pip
 
-env:
-  - PY_COLORS=1 PYTHONPATH=.
-
 install:
+  - pip install .
   - pip install -r requirements-ci.txt
+  - if [[ $TRAVIS_PYTHON_VERSION == pypy ]] ; then pip install pyOpenSsl ; fi
 
 script:
   - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then py.test; fi
@@ -26,6 +32,7 @@ script:
 
 after_script:
   - python helpers/greptodo.py
+  - python helpers/jssdksyncmon.py
   - python helpers/debug-info.py
 
 after_success:

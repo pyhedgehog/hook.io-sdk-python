@@ -10,7 +10,7 @@ info = {
     "maxsize": sys.maxsize
 }
 
-search_modules = ["certifi", "requests", "six", "argparse", "pip"]
+search_modules = ["ssl", "OpenSSL", "certifi", "requests", "six", "argparse", "pip"]
 found_modules = []
 
 for m in search_modules:

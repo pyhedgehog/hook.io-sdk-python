@@ -27,9 +27,9 @@ class Namespace(dict):
         return value
 
 
-def init_sdk(Hook):
-    Hook = Namespace(Hook)
-    if '__main__' in sys.modules and getattr(sys.modules['__main__'], 'Hook') is Hook:
-        sys.modules['__main__'].Hook = Hook
-    Hook.sdk = hookio.createClient()
-    return Hook
+def install_hook_sdk(Hook):
+    HookNS = Namespace(Hook)
+    if '__main__' in sys.modules and getattr(sys.modules['__main__'], 'Hook', None) is Hook:
+        sys.modules['__main__'].Hook = HookNS
+    HookNS.sdk = hookio.createClient(Hook=HookNS)
+    return HookNS

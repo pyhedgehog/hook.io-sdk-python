@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # import warnings
 import logging
+import time
 import random
 import hookio
 import json
-from six import StringIO
+import requests
+import pytest
+from six import StringIO, BytesIO, b
 
 log = logging.getLogger(__name__)
 unclutter_prefix = 'eb43df31'
@@ -32,8 +35,13 @@ def test_hook_anonymous():
 
 def test_hook_run():
     sdk = hookio.createClient()
-    res = sdk.hook.run('marak/echo', {"param2": "222", unclutter_prefix: "random"}, anonymous=True)
-    assert res == {"param1": "foo", "param2": "222", unclutter_prefix: "random"}
+    data = {"param2": "123", unclutter_prefix: "random", "a": "2"}
+    res = sdk.hook.run('marak/echo', data, anonymous=True)
+    data["param1"] = "foo"
+    assert res == data
+    datastr = "param2=123&" + unclutter_prefix + "=random&a=1&a=2"
+    res = sdk.hook.run('marak/echo', datastr, anonymous=True)
+    assert res == data
 
     def streaming(s):
         log.debug('test_hook_run.streaming(%r)', s)
@@ -55,14 +63,14 @@ def test_hook_run():
     assert res == {"streaming": "true", "param1": "foo", "param2": "bar"}
 
     sdk = hookio.Client(hook_private_key=sdk.hook_private_key, line_streaming=False)
-    out = StringIO()
+    out = BytesIO()
     keep = []
     resp = sdk.hook.run('marak/echo', StringIO(), streaming=streaming, anonymous=True)
     resp.raise_for_status()
     res = out.getvalue()
     assert res
-    assert res == ''.join(keep)
-    res = json.loads(res)
+    assert res == b('').join(keep)
+    res = json.loads(res.decode('utf-8'))
     assert res == {"streaming": "true", "param1": "foo", "param2": "bar"}
 
 
@@ -104,24 +112,42 @@ def test_hook_admin():
     assert resource == resource_copy  # check it's not modified
     owner = res['hook']['owner']
     url = '%s/%s' % (owner, name)
+
     res = sdk.hook.source(url)
     assert res == resource['source']
+
+    sdk.session.close()
+    r = sdk.hook.source(url, raw=True)
+    assert r.text == resource['source']
+
     res = sdk.hook.resource(url)
     assert res['language'] == resource['language']
     assert res['source'] == source1
     assert res['name'] == name
+
     res = sdk.hook.run(url, {}, raw=True, anonymous=True)
     assert res.text.rstrip('\n') == val1
-    bug240 = True  # FIXME: https://github.com/bigcompany/hook.io/issues/240
+
+    # FIXME: https://github.com/bigcompany/hook.io/issues/240
+    r = requests.get('https://api.github.com/repos/bigcompany/hook.io/issues/240')
+    r.raise_for_status()
+    res = r.json()
+    bug240 = res["state"] == "open"
     if not bug240:
-        res = sdk.hook.update(name, {'source': source2})
+        res = sdk.hook.update(url, {'source': source2})
         assert res == "OK"
+
         res = sdk.hook.resource(url)
         assert res['language'] == resource['language']
         assert res['source'] == source2
         assert res['name'] == name
+
         res = sdk.hook.run(url, {}, anonymous=True)
         assert res == val2
+    else:
+        pytest.raises(requests.ConnectionError, sdk.hook.update, url, {'source': source2})
+
+    time.sleep(5)  # wait to avoid DoS penalty
     res = sdk.hook.destroy(url)
     assert res['status'] == 'deleted'
     assert res['name'] == name

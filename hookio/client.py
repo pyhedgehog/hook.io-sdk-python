@@ -3,9 +3,11 @@ import sys
 import json
 import requests
 import logging
+from requests.compat import basestring
 from six.moves.urllib.parse import urljoin, urlencode
 
 log = logging.getLogger(__name__)
+DEFAULT_CHUNK_SIZE = 64
 
 
 class Client:
@@ -22,7 +24,7 @@ class Client:
     }
 
     def __init__(self, host='hook.io', port=None, protocol=None, hook_private_key=None,
-                 verify=None, line_streaming=True, chunk_size=requests.models.ITER_CHUNK_SIZE):
+                 verify=None, line_streaming=True, chunk_size=DEFAULT_CHUNK_SIZE):
         # assert hook_private_key is not None
         if host is None:
             host = '127.0.0.1'
@@ -62,7 +64,7 @@ class Client:
         raise AttributeError('%s instance has no attribute %r' % (self.__class__.__name__, name))
 
     def request(self, method, url, params, streaming=None, anonymous=False, hook_private_key=None,
-                json_auth=False, json_forbid=False):
+                chunk_size=None, json_auth=False, json_forbid=False):
         uri = urljoin(self.base_url, url)
         log.debug('Client.request: %r+%r = %r', self.base_url, url, uri)
         headers = {'accept': 'application/json'}
@@ -73,28 +75,34 @@ class Client:
             headers['hookio-private-key'] = hook_private_key
         else:
             log.debug('Client.request: anonymous')
-        if streaming:
-            log.debug('Client.request: Streaming %r', params)
-            r = self.session.request(method, uri, data=params,
-                                     params={'streaming': 'true'}, headers=headers, stream=True)
-        else:
+        is_stream = ((hasattr(params, 'read') or hasattr(params, '__iter__')) and
+                     not isinstance(params, (basestring, list, tuple, dict)))
+        if not is_stream:
             log.debug('Client.request: Passing %r', params)
             if json_auth and hook_private_key and not anonymous:
                 params['hook_private_key'] = hook_private_key
-            # r = self.session.request(method, uri, json=params, headers=headers, stream=False)
-            # Compatibility with old requests package installed on hook.io
             if method == 'POST' and json_forbid:
                 headers['content-type'] = 'application/x-www-form-urlencoded'
                 params = urlencode(params)
             elif method == 'POST':
                 headers['content-type'] = 'application/json'
                 params = json.dumps(params)
+        else:
+            log.debug('Client.request: Streaming %r', params)
+        if streaming:
+            log.debug('Client.request: Streaming from %s', url)
+            r = self.session.request(method, uri, data=params,
+                                     params={'streaming': 'true'}, headers=headers, stream=True)
+        else:
+            log.debug('Client.request: Reading from %s', url)
             r = self.session.request(method, uri, data=params, headers=headers, stream=False)
         r.raise_for_status()
         if callable(streaming):
+            if chunk_size is None:
+                chunk_size = self.chunk_size
             if self.line_streaming:
                 log.debug("Streaming iter_lines to %r (%s)", streaming, r.encoding)
-                for s in r.iter_lines(chunk_size=self.chunk_size):
+                for s in r.iter_lines(chunk_size=chunk_size):
                     if not isinstance(s, str):
                         s = s.decode(r.encoding or 'utf-8', errors='replace')
                     s += '\n'
@@ -102,11 +110,11 @@ class Client:
                     streaming(s)
             else:
                 log.debug("Streaming iter_content to %r", streaming)
-                for s in r.iter_content(chunk_size=self.chunk_size):
+                for s in r.iter_content(chunk_size=chunk_size):
                     # log.debug("%r(%r)", streaming, s)
                     streaming(s)
         elif streaming:
-            log.debug("Streaming is %r - stream using res.iter_* manually", streaming)
+            log.debug("Streaming is %r - stream using resp.iter_* manually", streaming)
         return r
 
 

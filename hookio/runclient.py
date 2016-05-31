@@ -1,4 +1,5 @@
 import sys
+import os
 import hookio
 import argparse
 import functools
@@ -10,6 +11,9 @@ log = logging.getLogger(__name__)
 
 
 def parse_argv(argv):
+    if os.path.relpath(argv[0], os.path.dirname(hookio.__file__)) == '__main__.py':
+        argv[0] = sys.executable + ' -m hookio'
+        # argv[0] = __file__
     p = argparse.ArgumentParser(prog=argv[0], description='CLI for hook.io API')
     p.add_argument('--debug', '-d', default=debug, action='store_true',
                    help='Enable debug output')
@@ -83,6 +87,8 @@ def parse_argv(argv):
     logs_stream.add_argument('-r', dest='raw_data', action='store_true',
                              help='show raw data in elements')
     supports_streaming['logs', 'stream'] = True
+    logs_flush = logscmds.add_parser('flush', help='flush log')
+    logs_flush.add_argument('url', help='owner/name of hook')
     events = object_parsers['events'] = objects.add_parser('events', help='events')
     eventscmds = events.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     events_get = eventscmds.add_parser('get', help='show events')
@@ -96,9 +102,11 @@ def parse_argv(argv):
     keys_checkAccess.add_argument('data_role', metavar='role', help='role to check')
     supports_data.add(('keys', 'checkAccess'))
     keys_create = keyscmds.add_parser('create', help='create key')
-    keys_create.add_argument('params', nargs='*', metavar='name=val', help='key data')
+    keys_create.add_argument('url', metavar='name', help='key name')
+    keys_create.add_argument('data_roles', nargs='*', metavar='roles', help='key roles')
     supports_data.add(('keys', 'create'))
-    keyscmds.add_parser('destroy', help='destroy key')
+    keys_destroy = keyscmds.add_parser('destroy', help='destroy key')
+    keys_destroy.add_argument('url', metavar='name', help='key name')
     keyscmds.add_parser('all', help='all keys')
     files = object_parsers['files'] = objects.add_parser('files', help='files')
     filescmds = files.add_subparsers(title='subcommands', dest='func', help='sub-command help')
@@ -201,6 +209,8 @@ def main(argv=None):
     kwargs = {}
     if args.raw is not None:
         kwargs['raw'] = args.raw
+    if hasattr(args, 'raw_data'):
+        kwargs['raw_data'] = args.raw
     if args.url is not None:
         targs.append(args.url)
     if args.data is not None:

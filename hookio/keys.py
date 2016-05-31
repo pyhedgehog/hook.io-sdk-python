@@ -51,12 +51,16 @@ class Keys:
         r = self.client.request('POST', 'keys/checkAccess', data, **opts)
         return opt_json(r, raw)
 
-    def create(self, data, raw=False, **opts):
+    def create(self, name, data, raw=False, **opts):
+        data['name'] = name
+        opts.setdefault('json_auth', True)
+        # opts.setdefault('json_forbid', True)
         r = self.client.request('POST', 'keys/create', data, **opts)
         return opt_json(r, raw)
 
-    def destroy(self, data, raw=False, **opts):
-        r = self.client.request('POST', 'keys/destroy', data, **opts)
+    def destroy(self, name, raw=False, **opts):
+        opts.setdefault('json_auth', True)
+        r = self.client.request('POST', 'keys/destroy', {'name': name}, **opts)
         return opt_json(r, raw)
 
     def all(self, raw=False, **opts):

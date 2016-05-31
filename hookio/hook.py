@@ -7,13 +7,13 @@ class Hook:
     def __init__(self, client):
         self.client = weakref.proxy(client)
 
-    def run(self, url, data, raw=False, streaming=False, anonymous=True, **opts):
+    def run(self, url, data, raw=False, streaming=False, anonymous=True, method='GET', **opts):
         if not streaming and not isinstance(data, dict):
             data = parse_qs(data)
             for k, v in data.items():
                 if type(v) == list and len(v) == 1:
                     data[k] = v[0]
-        r = self.client.request('GET', url, data, streaming=streaming,
+        r = self.client.request(method, url, data, streaming=streaming,
                                 anonymous=anonymous, **opts)
         return opt_json(r, raw or streaming)
 
