@@ -92,7 +92,8 @@ class RolesParser(HTMLParser):
         return data
 
 
-def test_roles(cache):
+def test_roles(pytestconfig):
+    cache = pytestconfig.cache
     roles = cache.get('hook.io/roles', None)
     if roles is not None:
         t, roles = roles

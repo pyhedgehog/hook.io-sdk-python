@@ -1,8 +1,6 @@
 -r requirements.txt
+-r requirements-test.txt
 
 tox
-flake8
-coverage
 codecov
 argparse
-pytest-cache

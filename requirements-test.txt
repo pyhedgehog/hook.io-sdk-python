@@ -1,5 +1,6 @@
 -r requirements.txt
 
 pytest
+pytest-config
 flake8
 coverage

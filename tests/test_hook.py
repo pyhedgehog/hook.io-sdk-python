@@ -86,7 +86,8 @@ def test_hook_info():
     assert res['name'] == 'echo'
 
 
-def test_hook_admin(cache):
+def test_hook_admin(pytestconfig):
+    cache = pytestconfig.cache
     name = ('test' + unclutter_prefix + 'hook').lower()
     assert len(name) <= 50
     val1 = ''.join(reversed(unclutter_prefix)) + '-1'
