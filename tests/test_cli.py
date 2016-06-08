@@ -1,6 +1,9 @@
 #!/usr/bin/env python
+import os
+import sys
 import pytest
 import logging
+import runpy
 import hookio.runclient
 
 log = logging.getLogger(__name__)
@@ -18,6 +21,29 @@ def test_cli_empty(capsys):
     assert not out
     assert 'usage:' in err
     assert 'too few arguments' in err
+
+
+def test_cli_runpy(capsys):
+    saved_argv = sys.argv[:]
+    try:
+        dirname = os.path.dirname(hookio.__file__)
+        sys.argv[:] = [os.path.join(dirname, 'runclient.py')]
+        pytest.raises(SystemExit, runpy.run_module, 'hookio.runclient', run_name='__main__')
+        out, err = capsys.readouterr()
+        assert not out
+        assert 'usage:' in err
+        assert 'too few arguments' in err
+        modname = 'hookio'
+        if sys.version_info[:2] <= (2, 6):
+            modname = 'hookio.__main__'
+        sys.argv[:] = [os.path.join(dirname, '__main__.py')]
+        pytest.raises(SystemExit, runpy.run_module, modname, run_name='__main__')
+        out, err = capsys.readouterr()
+        assert not out
+        assert 'usage:' in err
+        assert 'too few arguments' in err
+    finally:
+        sys.argv[:] = saved_argv
 
 
 def test_cli_help(capsys):

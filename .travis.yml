@@ -23,7 +23,8 @@ cache:
 install:
   - pip install .
   - pip install -r requirements-ci.txt
-  - if [[ $TRAVIS_PYTHON_VERSION == pypy ]] ; then pip install pyOpenSsl ; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == pypy ]] ; then pip install -r requirements-pypy2.txt ; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]] ; then pip install -r requirements-py26.txt ; fi
 
 script:
   - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then py.test; fi

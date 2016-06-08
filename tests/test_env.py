@@ -9,7 +9,7 @@ unclutter_prefix = '%s::%08X' % (unclutter_prefix, random.randrange(0x10000000, 
 def test_env():
     key = unclutter_prefix + '::test_key'
     val = ''.join(reversed(unclutter_prefix))
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.env.get(anonymous=True)
     assert 'error' in res

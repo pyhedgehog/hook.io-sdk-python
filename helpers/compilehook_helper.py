@@ -3,6 +3,8 @@ import sys
 import types
 import collections
 
+sources = collections.OrderedDict()
+
 
 def process_sources(sources):
     for name in sources:
@@ -12,6 +14,7 @@ def process_sources(sources):
             mod.__package__ = name.rsplit('.', 1)[0]
         if any(s.startswith(name + '.') for s in sources):
             mod.__package__ = name
+
     for name, source in sources.items():
         try:
             d = sys.modules[name].__dict__
@@ -19,5 +22,3 @@ def process_sources(sources):
         except:
             print('Exception while import-pushing ' + repr(name))
             raise
-
-sources = collections.OrderedDict()

@@ -1,0 +1,4 @@
+cryptography==0.9.3
+pyOpenSSL==0.15.1
+ndg-httpsclient
+pyasn1

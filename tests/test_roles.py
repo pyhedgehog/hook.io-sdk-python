@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import time
 import requests
 import logging
 import hookio.keys
@@ -7,6 +8,7 @@ from six.moves.html_entities import name2codepoint
 from six import unichr
 
 log = logging.getLogger(__name__)
+max_retries = 3
 
 
 # def setup_function(function):
@@ -90,11 +92,27 @@ class RolesParser(HTMLParser):
         return data
 
 
-def test_roles():
-    r = requests.get('https://hook.io/roles')
-    text = r.text
-    # text = open('roles', 'rt').read()
-    p = RolesParser()
-    p.feed(text)
-    p.close()
-    assert p.roles == hookio.keys.roles
+def test_roles(cache):
+    roles = cache.get('hook.io/roles', None)
+    if roles is not None:
+        t, roles = roles
+        if time.time() - t > 86400:
+            roles = None
+    if roles is None:
+        for i in range(max_retries):
+            try:
+                r = requests.get('https://hook.io/roles')
+                r.raise_for_status()
+                text = r.text
+                p = RolesParser()
+                p.feed(text)
+                p.close()
+                assert p.roles
+            except Exception:
+                if i == max_retries-1:
+                    raise
+                continue
+            roles = p.roles
+            cache.set('hook.io/roles', [time.time(), roles])
+            break
+    assert roles == hookio.keys.roles

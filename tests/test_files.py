@@ -32,7 +32,7 @@ def test_files():
         }
     read_model = stat_model.copy()
     read_model["contents"] = val
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.files.writeFile(fname, val)
     assert res == stat_model

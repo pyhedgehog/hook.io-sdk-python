@@ -54,6 +54,8 @@ def main(argv):
                    help='File to write HTML log (default - "colorlog.html")')
     p.add_argument('--clog', '-c', default=None,
                    help='File to write ANSI log (default - not write)')
+    p.add_argument('--title', '-t', default='colorlog',
+                   help='Title for html document')
     p.add_argument('args', nargs='*', help='What to run')
     args = p.parse_args(argv[1:])
     args.slow = True
@@ -88,7 +90,8 @@ def main(argv):
         finally:
             f.close()
     if args.log:
-        c = ansi2html.Ansi2HTMLConverter(dark_bg=False, scheme='xterm', output_encoding='utf-8')
+        c = ansi2html.Ansi2HTMLConverter(dark_bg=False, scheme='xterm',
+                                         title=args.title, output_encoding='utf-8')
         html = c.convert(out.decode('utf-8'))
         html = six.b(html)
         f = open(args.log, 'wb')

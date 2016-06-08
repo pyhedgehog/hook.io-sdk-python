@@ -1,9 +1,10 @@
 import os
 import sys
+import time
 import json
-import requests
+import random
 import logging
-from requests.compat import basestring
+import requests
 from six.moves.urllib.parse import urljoin, urlencode
 
 log = logging.getLogger(__name__)
@@ -12,6 +13,7 @@ DEFAULT_CHUNK_SIZE = 64
 
 class Client:
     lazy_attrs = {
+        'account': ('account', 'Account'),
         'datastore': ('datastore', 'Datastore'),
         'domains': ('domains', 'Domains'),
         'env': ('env', 'Env'),
@@ -24,7 +26,8 @@ class Client:
     }
 
     def __init__(self, host='hook.io', port=None, protocol=None, hook_private_key=None,
-                 verify=None, line_streaming=True, chunk_size=DEFAULT_CHUNK_SIZE):
+                 verify=None, line_streaming=True, chunk_size=DEFAULT_CHUNK_SIZE,
+                 max_retries=None):
         # assert hook_private_key is not None
         if host is None:
             host = '127.0.0.1'
@@ -47,10 +50,21 @@ class Client:
             verify = not local
         # assert protocol == 'https'
 
+        self.base_url = '%s://%s:%d/' % (protocol, host, port)
         self.session = requests.Session()
+        self.max_retries = max_retries
+        self.supports_retries = None
+        if max_retries:
+            try:
+                a = requests.adapters.HTTPAdapter(max_retries=max_retries)
+            except TypeError:
+                self.supports_retries = False
+                log.info("Installed version of requests doesn't supports retries.")
+            else:
+                self.session.mount(self.base_url, a)
+                self.supports_retries = True
         self.hook_private_key = hook_private_key
         self.session.verify = verify
-        self.base_url = '%s://%s:%d/' % (protocol, host, port)
         self.line_streaming = line_streaming
         self.chunk_size = chunk_size
 
@@ -63,8 +77,8 @@ class Client:
             return obj
         raise AttributeError('%s instance has no attribute %r' % (self.__class__.__name__, name))
 
-    def request(self, method, url, params, streaming=None, anonymous=False, hook_private_key=None,
-                chunk_size=None, json_auth=False, json_forbid=False):
+    def request(self, method, url, params, stream_in=None, streaming=None, anonymous=False,
+                hook_private_key=None, chunk_size=None, json_auth=False, json_forbid=False):
         uri = urljoin(self.base_url, url)
         log.debug('Client.request: %r+%r = %r', self.base_url, url, uri)
         headers = {'accept': 'application/json'}
@@ -75,44 +89,63 @@ class Client:
             headers['hookio-private-key'] = hook_private_key
         else:
             log.debug('Client.request: anonymous')
-        is_stream = ((hasattr(params, 'read') or hasattr(params, '__iter__')) and
-                     not isinstance(params, (basestring, list, tuple, dict)))
-        if not is_stream:
-            log.debug('Client.request: Passing %r', params)
-            if json_auth and hook_private_key and not anonymous:
-                params['hook_private_key'] = hook_private_key
-            if method == 'POST' and json_forbid:
+        log.debug('Client.request: Passing %r', params)
+        if json_auth and hook_private_key and not anonymous:
+            params['hook_private_key'] = hook_private_key
+        if stream_in is not None:
+            log.debug('Client.request: Streaming %r', stream_in)
+            data = stream_in
+        elif method == 'POST':
+            if json_forbid:
                 headers['content-type'] = 'application/x-www-form-urlencoded'
                 params = urlencode(params)
-            elif method == 'POST':
+            else:
                 headers['content-type'] = 'application/json'
                 params = json.dumps(params)
+            data, params = params, {}
         else:
-            log.debug('Client.request: Streaming %r', params)
-        if streaming:
-            log.debug('Client.request: Streaming from %s', url)
-            r = self.session.request(method, uri, data=params,
-                                     params={'streaming': 'true'}, headers=headers, stream=True)
-        else:
-            log.debug('Client.request: Reading from %s', url)
-            r = self.session.request(method, uri, data=params, headers=headers, stream=False)
+            data, params = params, {}
+        max_retries = self.max_retries or 1
+        if self.supports_retries:
+            max_retries = 1
+        for retry in range(max_retries):
+            try:
+                if streaming:
+                    params['streaming'] = 'true'
+                    log.debug('Client.request: Streaming: %s %s', method, url)
+                    log.debug('Client.request: %r, %r', data, params)
+                    r = self.session.request(method, uri, data=data,
+                                             params=params, headers=headers, stream=True)
+                else:
+                    log.debug('Client.request: Reading: %s %s', method, url)
+                    log.debug('Client.request: %r, %r', data, params)
+                    r = self.session.request(method, uri, data=data,
+                                             params=params, headers=headers, stream=False)
+                break
+            except Exception:
+                if retry >= max_retries-1:
+                    raise
+                sleep = random.randint(5, 60)
+                log.exception("Request attempt %d/%d failed - sleeping %s seconds...",
+                              retry+1, max_retries, sleep)
+                time.sleep(sleep)
         r.raise_for_status()
         if callable(streaming):
             if chunk_size is None:
                 chunk_size = self.chunk_size
             if self.line_streaming:
                 log.debug("Streaming iter_lines to %r (%s)", streaming, r.encoding)
-                for s in r.iter_lines(chunk_size=chunk_size):
-                    if not isinstance(s, str):
-                        s = s.decode(r.encoding or 'utf-8', errors='replace')
-                    s += '\n'
-                    # log.debug("%r(%r)", streaming, s)
-                    streaming(s)
+                for line in r.iter_lines(chunk_size=chunk_size):
+                    if not isinstance(line, str):
+                        line = line.decode(r.encoding or 'utf-8', errors='replace')
+                    line += '\n'
+                    # log.debug("%r(%r)", streaming, line)
+                    streaming(line)
             else:
                 log.debug("Streaming iter_content to %r", streaming)
-                for s in r.iter_content(chunk_size=chunk_size):
-                    # log.debug("%r(%r)", streaming, s)
-                    streaming(s)
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    # log.debug("%r(%r)", streaming, chunk)
+                    streaming(chunk)
         elif streaming:
             log.debug("Streaming is %r - stream using resp.iter_* manually", streaming)
         return r

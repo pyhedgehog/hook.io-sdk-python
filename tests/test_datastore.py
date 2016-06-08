@@ -9,7 +9,7 @@ unclutter_prefix = '%s::%08X' % (unclutter_prefix, random.randrange(0x10000000, 
 def test_datastore():
     key = unclutter_prefix + '::test_key'
     val = {'i': 1, 's': 'qwerty', 'o': {'uuid': unclutter_prefix}, 'n': None}
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.datastore.recent(anonymous=True)
     assert 'error' in res
@@ -24,7 +24,8 @@ def test_datastore():
     res = sdk.datastore.get(key)
     assert res == val
     res = sdk.datastore.recent()
-    assert key in res
+    assert type(res) == list
+    assert len(res) >= 5 or key in res
     res = sdk.datastore.delete(key)
     assert res == 1
     res = sdk.datastore.delete(key)

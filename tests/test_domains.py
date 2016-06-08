@@ -3,7 +3,7 @@ import hookio
 
 
 def test_domains():
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
     assert sdk.hook_private_key
     res = sdk.domains.all(anonymous=True)
     assert 'error' in res

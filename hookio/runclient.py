@@ -23,6 +23,7 @@ def parse_argv(argv):
                    help='Skip https verification')
     p.add_argument('-s', dest='verify', action='store_true',
                    help='Force https verification')
+    p.add_argument('--login', '-l', help='Login (instead of api-key) in form user:pass')
     p.set_defaults(obj=None, func=None, url=None, data=None, params=[])
     objects = p.add_subparsers(title='subcommands', dest='obj',
                                help='sub-command help')
@@ -128,6 +129,10 @@ def parse_argv(argv):
     domains = object_parsers['domains'] = objects.add_parser('domains', help='domains')
     domainscmds = domains.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     domainscmds.add_parser('all', help='all domains')
+    account = object_parsers['account'] = objects.add_parser('account', help='account')
+    accountcmds = account.add_subparsers(title='subcommands', dest='func', help='sub-command help')
+    account_services = accountcmds.add_parser('services', help='all hooks owned by this account')
+    account_services.add_argument('url', nargs='?', metavar='owner', help='Name of user')
     args = p.parse_args(argv[1:])
     log.debug('args=%r', args)
     if not args.obj:
@@ -147,7 +152,7 @@ def parse_argv(argv):
     if args.streaming is True or (args.streaming is None and not sys.stdin.isatty()):
         args.streaming = streaming_helper
         if args.streaming is None:
-            args.data = sys.stdin
+            args.stream_in = sys.stdin
     return args
 
 
@@ -183,6 +188,11 @@ def process_log_row(row, raw_data):
     sys.stdout.flush()
 
 
+def do_account_services(sdk, args):
+    for hook in sdk.account.services(args.url):
+        print(hook)
+
+
 def debug2logging(debug):
     logging.root.setLevel([logging.DEBUG, logging.INFO][not debug])
     logging.getLogger('requests').setLevel([logging.INFO, logging.WARN][not debug])
@@ -194,12 +204,17 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     if not logging.root.handlers:
+        if hasattr(logging, 'captureWarnings'):
+            logging.captureWarnings(True)
         logging.basicConfig(level=logging.DEBUG)
     debug2logging(debug)
     args = parse_argv(argv)
     debug2logging(args.debug)
     log.debug('args=%r', args)
     sdk = hookio.createClient(dict(verify=args.verify))
+    if args.login:
+        res = sdk.account.login(*args.login.split(':', 1))
+        assert res == {"result": "valid", "redirect": "/services"}
     fn = 'do_%s_%s' % (args.obj, args.func)
     if fn in globals():
         globals()[fn](sdk, args)

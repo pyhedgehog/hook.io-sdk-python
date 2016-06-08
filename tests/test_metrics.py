@@ -3,7 +3,7 @@ import hookio
 
 
 def test_metrics():
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.metrics.hits('marak/echo', anonymous=True)
     assert type(res) == int

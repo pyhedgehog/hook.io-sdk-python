@@ -2,7 +2,8 @@ import sys
 import weakref
 import json
 import logging
-from .utils import opt_json
+from .utils import opt_json, Response2JSONLinesIterator
+from six import StringIO
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +24,8 @@ class Logs:
 
     def stream(self, url, raw=True, raw_data=True, streaming=True, **opts):
         opts['streaming'] = streaming
+        if streaming:
+            opts.setdefault('stream_in', StringIO())
         if not raw and callable(streaming):
             def wrapper(line):
                 row = json.loads(line)
@@ -34,14 +37,13 @@ class Logs:
             log.debug("Will stream via wrapper")
         r = self.client.request('GET', url + '/logs', {}, **opts)
         if not raw and streaming and not callable(streaming):
-            def iter_objects():
-                for line in r.iter_lines(chunk_size=opts.get('chunk_size', self.client.chunk_size)):
-                    row = json.loads(line)
-                    if not raw_data and 'data' in row:
-                        row['data'] = json.loads(row['data'])
-                    yield row
             log.debug("Will return iter_objects generator")
-            return iter_objects()
+            chunk_size = opts.get('chunk_size', self.client.chunk_size)
+            if raw_data:
+                func = None
+            else:
+                func = data_converted
+            return Response2JSONLinesIterator(r, converter=func, chunk_size=chunk_size)
         return r
 
     def flush(self, url, raw=False, **opts):
@@ -53,3 +55,9 @@ class Logs:
             "Writing logs supported only inside hook processing"
         msg = {'type': 'log', 'payload': {'entry': msg}}
         sys.stderr.write(json.dumps(msg) + '\n')
+
+
+def data_converted(obj):
+    if 'data' in obj:
+        obj['data'] = json.loads(obj['data'])
+    return obj

@@ -48,7 +48,7 @@ def setup_function(function):
 
 
 def test_events():
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.events.get('marak')
     assert type(res) == list
@@ -89,7 +89,8 @@ def noop(arg):
 
 
 def async_events_stream_template(name, func_factory, line2obj):
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
+    assert sdk.hook_private_key
     q = queue.Queue()
     e = threading.Event()
     func = functools.partial(sdk.events.stream, 'marak')
@@ -156,6 +157,15 @@ def test_events_stream_iter_raw():
 
 def test_events_stream_iter():
     def func_factory(func, streaming):
-        iter_factory = functools.partial(func, streaming=True, raw=False)
+        def iter_factory():
+            res = func(streaming=True, raw=False)
+            assert isinstance(res, hookio.utils.Response2JSONLinesIterator)
+            iterobj = iter(res)
+            try:
+                for row in iterobj:
+                    yield row
+            finally:
+                res.response.close()
+                iterobj.close()
         return functools.partial(stream_iter_thread, streaming, iter_factory)
     async_events_stream_template("test_events_stream_iter", func_factory, noop)

@@ -34,7 +34,7 @@ def test_hook_anonymous():
 
 
 def test_hook_run():
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
     data = {"param2": "123", unclutter_prefix: "random", "a": "2"}
     res = sdk.hook.run('marak/echo', data, anonymous=True)
     data["param1"] = "foo"
@@ -75,7 +75,7 @@ def test_hook_run():
 
 
 def test_hook_info():
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
     res = sdk.hook.source('marak/echo')
     assert res
     source = res
@@ -86,7 +86,7 @@ def test_hook_info():
     assert res['name'] == 'echo'
 
 
-def test_hook_admin():
+def test_hook_admin(cache):
     name = ('test' + unclutter_prefix + 'hook').lower()
     assert len(name) <= 50
     val1 = ''.join(reversed(unclutter_prefix)) + '-1'
@@ -98,7 +98,7 @@ def test_hook_admin():
         'source': source1,
         'hookSource': 'code',
     }
-    sdk = hookio.createClient()
+    sdk = hookio.createClient({'max_retries': 3})
 
     assert sdk.hook_private_key
     resource_copy = resource.copy()
@@ -113,42 +113,53 @@ def test_hook_admin():
     owner = res['hook']['owner']
     url = '%s/%s' % (owner, name)
 
-    res = sdk.hook.source(url)
-    assert res == resource['source']
+    try:
+        res = sdk.hook.source(url)
+        assert res == resource['source']
 
-    sdk.session.close()
-    r = sdk.hook.source(url, raw=True)
-    assert r.text == resource['source']
-
-    res = sdk.hook.resource(url)
-    assert res['language'] == resource['language']
-    assert res['source'] == source1
-    assert res['name'] == name
-
-    res = sdk.hook.run(url, {}, raw=True, anonymous=True)
-    assert res.text.rstrip('\n') == val1
-
-    # FIXME: https://github.com/bigcompany/hook.io/issues/240
-    r = requests.get('https://api.github.com/repos/bigcompany/hook.io/issues/240')
-    r.raise_for_status()
-    res = r.json()
-    bug240 = res["state"] == "open"
-    if not bug240:
-        res = sdk.hook.update(url, {'source': source2})
-        assert res == "OK"
+        sdk.session.close()
+        r = sdk.hook.source(url, raw=True)
+        assert r.text == resource['source']
 
         res = sdk.hook.resource(url)
         assert res['language'] == resource['language']
-        assert res['source'] == source2
+        assert res['source'] == source1
         assert res['name'] == name
 
-        res = sdk.hook.run(url, {}, anonymous=True)
-        assert res == val2
-    else:
-        pytest.raises(requests.ConnectionError, sdk.hook.update, url, {'source': source2})
+        res = sdk.hook.run(url, {}, raw=True, anonymous=True)
+        assert res.text.rstrip('\n') == val1
 
-    time.sleep(5)  # wait to avoid DoS penalty
-    res = sdk.hook.destroy(url)
+        # FIXME: https://github.com/bigcompany/hook.io/issues/240
+        bug240 = cache.get('github/bigcompany/hook.io/issues/240', None)
+        assert bug240 is None or len(bug240) == 2
+        if bug240 is not None:
+            t, bug240 = bug240
+            if time.time() - t < 86400:
+                bug240 = None
+        assert bug240 is None or bug240 is True or bug240 is False
+        if bug240 is None:
+            bug240 = True
+            r = requests.get('https://api.github.com/repos/bigcompany/hook.io/issues/240')
+            if r.ok:
+                res = r.json()
+                bug240 = res["state"] == "open"
+                cache.set('github/bigcompany/hook.io/issues/240', [time.time(), bug240])
+        if not bug240:
+            res = sdk.hook.update(url, {'source': source2})
+            assert res == "OK"
+
+            res = sdk.hook.resource(url)
+            assert res['language'] == resource['language']
+            assert res['source'] == source2
+            assert res['name'] == name
+
+            res = sdk.hook.run(url, {}, anonymous=True)
+            assert res == val2
+        else:
+            pytest.raises(requests.ConnectionError, sdk.hook.update, url, {'source': source2})
+    finally:
+        time.sleep(5)  # wait to avoid DoS penalty
+        res = sdk.hook.destroy(url)
     assert res['status'] == 'deleted'
     assert res['name'] == name
     assert res['owner'] == owner

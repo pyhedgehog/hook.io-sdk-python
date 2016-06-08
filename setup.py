@@ -16,9 +16,10 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 2',
     # 'Programming Language :: Python :: 2.5',  # ssl is broken in py2.5
-    # 'Programming Language :: Python :: 2.6',  # ssl is insecure in py2.6
+    'Programming Language :: Python :: 2.6',  # pyOpenSSL needed - look requirements-py26.txt
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
+    # < 3.2 not supported by pip team
     'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',

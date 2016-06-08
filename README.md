@@ -2,15 +2,28 @@
 python implementation of [bigcompany/hook.io-sdk](https://github.com/bigcompany/hook.io-sdk)
 
 ## Status
-**WIP:**
+Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.svg)](https://travis-ci.org/pyhedgehog/hook.io-sdk-python)
+[![codecov](https://codecov.io/gh/pyhedgehog/hook.io-sdk-python/branch/master/graph/badge.svg)](https://codecov.io/gh/pyhedgehog/hook.io-sdk-python)
+[![Issues](https://img.shields.io/github/issues/pyhedgehog/hook.io-sdk-python.svg)](https://github/pyhedgehog/hook.io-sdk-python/issues)
+
+### Actual WIP
  - Writing tests:
-   - [x] tests for almost all API endpoints (first target - coverage 90% for each library file)
-   - [ ] tests for CLI subcommands (second target - coverage 98% for every file)
- - Stoppers: [hook.io#240](https://github.com/bigcompany/hook.io/issues/240)
+   - tests for CLI subcommands (second target - coverage 98% for every file)
+ - Stoppers:
+   - [hook.io#240](https://github.com/bigcompany/hook.io/issues/240)
+   - [hook.io#245](https://github.com/bigcompany/hook.io/issues/245)
+   - [hook.io#251](https://github.com/bigcompany/hook.io/issues/251)
 
 Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.svg)](https://travis-ci.org/pyhedgehog/hook.io-sdk-python)
 [![codecov](https://codecov.io/gh/pyhedgehog/hook.io-sdk-python/branch/master/graph/badge.svg)](https://codecov.io/gh/pyhedgehog/hook.io-sdk-python)
 [![Issues](https://img.shields.io/github/issues/pyhedgehog/hook.io-sdk-python.svg)](https://github/pyhedgehog/hook.io-sdk-python/issues)
+
+### Roadmap
+ - 0.0.* - implement hook.io-sdk replacement + (debug) additions (like `account.login`) + CLI + tests
+ - 0.1.* - implement `Hook` replacement (python-style layer) + compilehook
+ - 0.2.* - python-style layer on client
+ - 0.* - attempt to implement all [plans](#Current plans)
+ - 0.9.* - documentation (at least auto-documentation) must be ready before 1.0
 
 ### Available Endpoints
 
@@ -21,6 +34,12 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
   - [x] destroy
   - [x] resource
   - [x] source
+  - [ ] package
+  - [ ] fork
+  - [ ] view
+  - [ ] presenter
+  - [ ] refresh
+  - [ ] all (`/<user>` or `/services`) blocked by [bigcompany/hook.io#251](https://github.com/bigcompany/hook.io/issues/251)
 - [x] Datastore
   - [x] get
   - [x] set
@@ -58,10 +77,21 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
   - [x] hits
 - [ ] Domains - won't be added?
   - [x] all
-- [ ] Account
+  - [ ] create
+  - [ ] destroy
+  - [ ] find
+  - [ ] get
+  - [ ] update
+- [x] Account
+  - [ ] name blocked by [#251 (comment)](https://github.com/bigcompany/hook.io/issues/251#issuecomment-224590890)
+    - Can be implemented by:
+      - listing keys (needs `keys::read`)
+      - creating temporary hook (needs `hook::create` and `hook::destroy`)
+      - creating temporary file (`readdir` shows owner) (needs `files::writeFile`, `files::readdir` and `files::removeFile`)
+      - Using `Hook` variable if we are inside hook.io server
   - [ ] signup
-  - [ ] login (user/password session instead of API key)
-  - [ ] list hooks (maybe should go to hook.all)
+  - [x] login (user/password session instead of API key)
+  - [x] services (list hooks - maybe should go to hook.all) see https://github.com/bigcompany/hook.io/issues/251
 - [ ] server
   - [ ] languages
   - [ ] package managers for language (https://hook.io/packages)
@@ -81,6 +111,8 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
  - files.createWriteStream
  - files.download
  - files.upload
+ - accounts.login
+ - accounts.services
 
 ### Points in question
 
@@ -96,11 +128,13 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
   - [x] Ability to pass command line arguments
   - [ ] Ability to pipe arbitrary code snippets
   - [ ] Add ws:// protocol for Websockets API (https://hook.io/websockets)
+  - [ ] More error-waiting tests (like in hook.io-test)
 - [ ] Test automation
   - [ ] Misc tests
     - [x] List `hookio.keys.roles` up to date with https://hook.io/roles
     - [x] Test server-side operation
     - [ ] Import https://github.com/bigcompany/hook.io-test/tree/master/tests/client
+    - [ ] Add tests for rich unicode support
   - [x] Tests for basic API
     - [x] Client object creation
     - [x] Server-side object creation
@@ -113,7 +147,7 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
     - [x] Keys
     - [x] Files
     - [x] Env
-    - [x] Domains
+    - [ ] Domains
   - [ ] Tests for CLI
     - [x] Basic parsing (test_cli.py)
     - [ ] Hook run
@@ -126,21 +160,12 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
     - [ ] Files
     - [ ] Env
     - [ ] Domains
-  - [ ] More error-waiting tests (like in hook.io-test)
   - [x] Test env matrix (tox)
   - [x] Code beauty (flake8)
   - [x] Coverage
   - [ ] Setup test CI
     - [x] travis
     - [ ] appveyor
-- [ ] Additional endpoints:
-  - [x] hook.resource
-  - [x] hook.source
-  - [ ] hook.all (`/<user>` and `/services`) blocked by
-  - [x] logs.flush
-  - [x] logs.write
-  - [x] keys.info
-  - [x] metrics.hits
 - [x] Auto-test available changes in hook.io-sdk since last sync (helpers/jssdksyncmon.py)
 - [ ] Auto-generate docs
 - [ ] CLI improvements:
@@ -150,6 +175,8 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
     - [ ] Add package bundle to account files and some loader to top of hook source
     - [ ] Rely on availability of `hookio` package on server (sometime it will happens)
   - [ ] Hook running via `gateway-*`s (https://hook.io/gateways)
+  - [ ] Parse `logging.LogRecord` dict-style entries in `hookio logs` subcommands
+  - [ ] Mass operations (i.e. mass `hookio hook destroy`)
 - [ ] Server-side operations (use sdk inside hook):
   - [ ] Hook `logging` to write `hookio.logs.write` (maybe as a separate code in run-hook-python - see bigcompany/hook.io#236)
   - [ ] All `payload` mentioned in https://github.com/bigcompany/hook.io/blob/master/bin/run-hook
@@ -165,6 +192,14 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
     - [ ] error
     - [ ] log
   - [ ] Implement WSGI
+- [ ] Rethink support for async operations (depends on async support for requests)
+- [ ] Second-layer over API with more python-friendly interfaces:
+  - [ ] Interface to fork a thread/threads to join `sdk.logs.stream` to `logging`
+    - [ ] Converter to make `logging.LogRecord` from parsed log `dict`
+    - [ ] async access for `logs.stream` with ability to add joined streams (depends on async feature)
+  - [ ] Wrapper interface to `sdk.files` API (`Hook.os` maybe?)
+  - [ ] `__call__` interface to `sdk.hook.run`(`hookio.any.<owner>.<name>()` for anonymous calls?)
+  - [ ] `sdk.environ`: Cache?
 
 ### Decisions
 
