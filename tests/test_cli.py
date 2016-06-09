@@ -9,12 +9,6 @@ import hookio.runclient
 log = logging.getLogger(__name__)
 
 
-# def setup_function(function):
-#     if not logging.root.handlers:
-#         logging.basicConfig(level=logging.DEBUG)
-#     log.debug('setting up %s', function)
-
-
 def test_cli_empty(capsys):
     pytest.raises(SystemExit, hookio.runclient.main, ['-'])
     out, err = capsys.readouterr()

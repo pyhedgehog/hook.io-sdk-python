@@ -19,13 +19,6 @@ unclutter_prefix = '%s::%08x' % (unclutter_prefix, random.randrange(0x10000000, 
 py26 = sys.version_info[:2] <= (2, 6)
 
 
-def setup_function(function):
-    if not logging.root.handlers:
-        format = '%(asctime)s:%(threadName)s:' + logging.BASIC_FORMAT
-        logging.basicConfig(level=logging.DEBUG, format=format)
-    log.debug('setting up %s', function)
-
-
 def flush_logging():
     for wr in reversed(logging._handlerList[:]):
         try:

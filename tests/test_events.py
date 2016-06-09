@@ -40,13 +40,6 @@ a `hook_private_key` parameter to access the service.\
 }
 
 
-def setup_function(function):
-    if not logging.root.handlers:
-        format = '%(asctime)s:%(threadName)s:' + logging.BASIC_FORMAT
-        logging.basicConfig(level=logging.DEBUG, format=format)
-    log.debug('setting up %s', function)
-
-
 def test_events():
     sdk = hookio.createClient({'max_retries': 3})
 

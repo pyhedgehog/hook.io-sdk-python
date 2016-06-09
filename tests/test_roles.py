@@ -11,12 +11,6 @@ log = logging.getLogger(__name__)
 max_retries = 3
 
 
-# def setup_function(function):
-#     if not logging.root.handlers:
-#         logging.basicConfig(level=logging.DEBUG)
-#     log.debug('setting up %s', function)
-
-
 class RolesParser(HTMLParser):
     roles = newroles = states = savedata = None
 
@@ -92,8 +86,7 @@ class RolesParser(HTMLParser):
         return data
 
 
-def test_roles(pytestconfig):
-    cache = pytestconfig.cache
+def test_roles(cache):
     roles = cache.get('hook.io/roles', None)
     if roles is not None:
         t, roles = roles

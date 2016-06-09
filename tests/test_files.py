@@ -9,12 +9,6 @@ unclutter_prefix = 'ef1b6b33-d3c9-4cc6-85d8-6a8f27c57c21'
 unclutter_prefix = '%s-%08X' % (unclutter_prefix, random.randrange(0x10000000, 0x7FFFFFFF))
 
 
-def setup_function(function):
-    if not logging.root.handlers:
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:' + logging.BASIC_FORMAT)
-    log.debug('setting up %s', function)
-
-
 def test_files():
     name = unclutter_prefix
     ext = ".txt"

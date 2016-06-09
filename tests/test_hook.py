@@ -14,12 +14,6 @@ unclutter_prefix = 'eb43df31'
 unclutter_prefix = '%s_%08X' % (unclutter_prefix, random.randrange(0x10000000, 0x7FFFFFFF))
 
 
-def setup_function(function):
-    if not logging.root.handlers:
-        logging.basicConfig(level=logging.DEBUG)
-    log.debug('setting up %s', function)
-
-
 def test_hook_anonymous():
     sdk0 = hookio.createClient()
     assert sdk0.hook_private_key
@@ -86,8 +80,7 @@ def test_hook_info():
     assert res['name'] == 'echo'
 
 
-def test_hook_admin(pytestconfig):
-    cache = pytestconfig.cache
+def test_hook_admin(cache):
     name = ('test' + unclutter_prefix + 'hook').lower()
     assert len(name) <= 50
     val1 = ''.join(reversed(unclutter_prefix)) + '-1'
