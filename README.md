@@ -177,6 +177,10 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
   - [ ] Hook running via `gateway-*`s (https://hook.io/gateways)
   - [ ] Parse `logging.LogRecord` dict-style entries in `hookio logs` subcommands
   - [ ] Mass operations (i.e. mass `hookio hook destroy`)
+  - [ ] Pseudo-FS (fuse, pyfilesystems, ...):
+    - Access to vfs (sdk.files)
+    - hooks (with resources and logs)
+    - datastore maybe
 - [ ] Server-side operations (use sdk inside hook):
   - [ ] Hook `logging` to write `hookio.logs.write` (maybe as a separate code in run-hook-python - see bigcompany/hook.io#236)
   - [ ] All `payload` mentioned in https://github.com/bigcompany/hook.io/blob/master/bin/run-hook

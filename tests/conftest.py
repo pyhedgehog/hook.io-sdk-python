@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # import warnings
+import os
+import json
+import pprint
 import logging
 import hookio
-import json
 import py
-import pprint
 
 log = logging.getLogger(__name__)
 
@@ -19,11 +20,16 @@ def setup_function(function):
 def pytest_funcarg__cache(request):
     log.debug('pytest_funcarg__cache: %s', pprint.pformat(request))
     if not hasattr(request.config, 'cache'):
+        def ensure_dir(path):
+            dp = os.path.dirname(path)
+            if not os.path.isdir(dp):
+                os.makedirs(dp)
+
         def cache_get(key):
-            path = cachedir.join(*key.split('/'))
+            path = os.path.join(cachedir, *key.split('/'))
             if path.check():
                 try:
-                    f = path.open('r')
+                    f = open(path, 'r')
                     try:
                         return json.load(f)
                     finally:
@@ -32,14 +38,14 @@ def pytest_funcarg__cache(request):
                     trace("cache-invalid at %s" % (path,))
 
         def cache_set(key, value):
-            path = cachedir.join(*key.split('/'))
+            path = os.path.join(cachedir, *key.split('/'))
             try:
-                path.dirpath().ensure_dir()
+                ensure_dir(path)
             except (py.error.EEXIST, py.error.EACCES):
                 request.config.warn(code='I9', message='could not create cache path %s' % (path,))
                 return
             try:
-                f = path.open('w')
+                f = open(path, 'w')
             except py.error.ENOTDIR:
                 request.config.warn(code='I9', message='cache could not write path %s' % (path,))
                 return
@@ -49,7 +55,9 @@ def pytest_funcarg__cache(request):
             finally:
                 f.close()
         trace = request.config.trace.root.get("cache")
-        cachedir = request.config.rootdir.join(".cache", "v")
+        cachedir = os.path.join(str(request.config.inicfg.config.path), os.pardir, ".cache", "v")
+        trace("pytest_funcarg__cache: cachedir=%r", cachedir)
+        request.config.warn(code='I9', message='pytest_funcarg__cache: cachedir=%s' % (cachedir,))
         cache = request.config.cache = hookio.utils.Namespace()
         cache.get = cache_get
         cache.set = cache_set
