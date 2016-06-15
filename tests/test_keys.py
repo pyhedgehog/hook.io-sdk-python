@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import hookio
 import random
 import logging
 
@@ -8,9 +7,7 @@ unclutter_prefix = '2d7008ff-8faa-4511-8ef9-64d1176db093'
 unclutter_prefix = '%s-%08x' % (unclutter_prefix, random.randrange(0x10000000, 0x7FFFFFFF))
 
 
-def test_keys():
-    sdk = hookio.createClient({'max_retries': 3})
-
+def test_keys(sdk):
     res = sdk.keys.checkAccess({'role': 'keys::create'})
     assert res == {'hasAccess': True}
 
@@ -30,11 +27,10 @@ def test_keys():
     assert res is None
 
 
-def test_keys_admin():
+def test_keys_admin(sdk):
     name = unclutter_prefix + '-key'
     # keys::destroy required due to https://github.com/bigcompany/hook.io/issues/243
     roles = 'pythonsdktest::test,keys::destroy'
-    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.keys.create(name, {'roles': roles})
     try:

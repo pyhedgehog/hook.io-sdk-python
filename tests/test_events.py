@@ -40,9 +40,7 @@ a `hook_private_key` parameter to access the service.\
 }
 
 
-def test_events():
-    sdk = hookio.createClient({'max_retries': 3})
-
+def test_events(sdk):
     res = sdk.events.get('marak')
     assert type(res) == list
     prev_hit = max(row['time'] for row in res)

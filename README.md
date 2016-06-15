@@ -196,6 +196,7 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
     - [ ] error
     - [ ] log
   - [ ] Implement WSGI
+    - https://github.com/bninja/wsgim-rip
 - [ ] Rethink support for async operations (depends on async support for requests)
 - [ ] Second-layer over API with more python-friendly interfaces:
   - [ ] Interface to fork a thread/threads to join `sdk.logs.stream` to `logging`

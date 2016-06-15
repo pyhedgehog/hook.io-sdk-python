@@ -36,10 +36,9 @@ def flush_logging():
             pass
 
 
-def test_logs():
+def test_logs(sdk):
     data_model = {"param1": "foo", "param2": "bar", unclutter_prefix: "test_logs"}
     cron_model = {"param1": "foo", "param2": "bar", "ranFromCron": "true"}
-    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.logs.read('marak/echo')
     assert type(res) == list
@@ -65,13 +64,12 @@ sys.stdout.flush();\
 """
 
 
-def test_logs_flush():
+def test_logs_flush(sdk):
     name = ('log' + unclutter_prefix.replace('::', '-')).lower()
     assert len(name) <= 50
     val = ''.join(reversed(unclutter_prefix))
     resource = dict(language='python', source=logsource_template % (val, val))
-    sdk = hookio.createClient({'max_retries': 3})
-    assert sdk.hook_private_key
+
     res = sdk.hook.create(name, resource)
     assert type(res) == dict
     assert res['status'] == 'created'
@@ -265,7 +263,7 @@ def test_logs_stream_iter_data():
     async_logs_stream_template("test_logs_stream_iter_data", func_factory, noop, data_obj)
 
 
-def test_logs_stream_iter_reuse():
+def test_logs_stream_iter_reuse(sdk):
     def func_factory(func, streaming):
         def iter_factory():
             res = func(streaming=True, raw=False)
@@ -280,7 +278,6 @@ def test_logs_stream_iter_reuse():
                 res.response.close()
                 iterobj.close()
         return functools.partial(stream_iter_thread, streaming, iter_factory)
-    sdk = hookio.createClient({'max_retries': 3})
     q = queue.Queue()
     e = threading.Event()
     func = functools.partial(sdk.logs.stream, 'marak/echo', chunk_size=1)

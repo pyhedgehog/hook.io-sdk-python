@@ -55,10 +55,21 @@ def pytest_funcarg__cache(request):
             finally:
                 f.close()
         trace = request.config.trace.root.get("cache")
-        cachedir = os.path.join(str(request.config.inicfg.config.path), os.pardir, ".cache", "v")
+        config = request.config
+        inicfg = config.inicfg
+        iniconfig = inicfg.config
+        inipath = iniconfig.path
+        cachedir = os.path.join(str(inipath), os.pardir, ".cache", "v")
         trace("pytest_funcarg__cache: cachedir=%r", cachedir)
         request.config.warn(code='I9', message='pytest_funcarg__cache: cachedir=%s' % (cachedir,))
         cache = request.config.cache = hookio.utils.Namespace()
         cache.get = cache_get
         cache.set = cache_set
     return request.config.cache
+
+
+def pytest_funcarg__sdk(request):
+    '''Unify client creation parameters'''
+    sdk = hookio.createClient({'max_retries': 3})
+    assert sdk.hook_private_key
+    return sdk

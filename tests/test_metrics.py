@@ -1,10 +1,5 @@
 #!/usr/bin/env python
-import hookio
-
-
-def test_metrics():
-    sdk = hookio.createClient({'max_retries': 3})
-
+def test_metrics(sdk):
     res = sdk.metrics.hits('marak/echo', anonymous=True)
     assert type(res) == int
     prev_hits = res

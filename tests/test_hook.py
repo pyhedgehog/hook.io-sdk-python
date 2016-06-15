@@ -27,8 +27,7 @@ def test_hook_anonymous():
     assert res == {"param1": "foo", "param2": "bar"}
 
 
-def test_hook_run():
-    sdk = hookio.createClient({'max_retries': 3})
+def test_hook_run(sdk):
     data = {"param2": "123", unclutter_prefix: "random", "a": "2"}
     res = sdk.hook.run('marak/echo', data, anonymous=True)
     data["param1"] = "foo"
@@ -56,7 +55,7 @@ def test_hook_run():
     res = resp.json()
     assert res == {"streaming": "true", "param1": "foo", "param2": "bar"}
 
-    sdk = hookio.Client(hook_private_key=sdk.hook_private_key, line_streaming=False)
+    sdk.line_streaming = False
     out = BytesIO()
     keep = []
     resp = sdk.hook.run('marak/echo', StringIO(), streaming=streaming, anonymous=True)
@@ -68,8 +67,7 @@ def test_hook_run():
     assert res == {"streaming": "true", "param1": "foo", "param2": "bar"}
 
 
-def test_hook_info():
-    sdk = hookio.createClient({'max_retries': 3})
+def test_hook_info(sdk):
     res = sdk.hook.source('marak/echo')
     assert res
     source = res
@@ -80,7 +78,7 @@ def test_hook_info():
     assert res['name'] == 'echo'
 
 
-def test_hook_admin(cache):
+def test_hook_admin(sdk, cache):
     name = ('test' + unclutter_prefix + 'hook').lower()
     assert len(name) <= 50
     val1 = ''.join(reversed(unclutter_prefix)) + '-1'
@@ -92,9 +90,7 @@ def test_hook_admin(cache):
         'source': source1,
         'hookSource': 'code',
     }
-    sdk = hookio.createClient({'max_retries': 3})
 
-    assert sdk.hook_private_key
     resource_copy = resource.copy()
     res = sdk.hook.create(name, resource)
     assert type(res) == dict

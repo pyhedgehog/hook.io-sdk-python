@@ -1,10 +1,5 @@
 #!/usr/bin/env python
-import hookio
-
-
-def test_domains():
-    sdk = hookio.createClient({'max_retries': 3})
-    assert sdk.hook_private_key
+def test_domains(sdk):
     res = sdk.domains.all(anonymous=True)
     assert 'error' in res
     assert res['error'] is True

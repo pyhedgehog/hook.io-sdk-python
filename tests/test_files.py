@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import random
-import hookio
 import logging
 import pytest
 
@@ -9,7 +8,7 @@ unclutter_prefix = 'ef1b6b33-d3c9-4cc6-85d8-6a8f27c57c21'
 unclutter_prefix = '%s-%08X' % (unclutter_prefix, random.randrange(0x10000000, 0x7FFFFFFF))
 
 
-def test_files():
+def test_files(sdk):
     name = unclutter_prefix
     ext = ".txt"
     bname = name + ext
@@ -26,7 +25,6 @@ def test_files():
         }
     read_model = stat_model.copy()
     read_model["contents"] = val
-    sdk = hookio.createClient({'max_retries': 3})
 
     res = sdk.files.writeFile(fname, val)
     assert res == stat_model

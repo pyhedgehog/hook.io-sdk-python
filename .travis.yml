@@ -15,16 +15,21 @@ matrix:
     - python: "3.4"
     - python: "pypy"
     - python: "pypy3"
+    - env: TRAVIS_PIP_UPDATE=false
+
+env:
+  global:
+    - PY_COLORS=1
+  matrix:
+    - TRAVIS_PIP_UPDATE=true
+    - TRAVIS_PIP_UPDATE=false
 
 cache:
   directories:
-    - $HOME/.cache/pip
+    - $HOME/.cache
 
 install:
-  - pip install .
-  - pip install -U -r requirements-ci.txt
-  - if [[ $TRAVIS_PYTHON_VERSION == pypy ]] ; then pip install -U -r requirements-pypy2.txt ; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]] ; then pip install -U -r requirements-py26.txt ; fi
+  - helpers/travis_install.sh
 
 script:
   - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then py.test; fi
