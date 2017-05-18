@@ -26,6 +26,7 @@ roles = [
     'files::writeFile',
     'hook::create',
     'hook::destroy',
+    'hook::find',
     'hook::logs::read',
     'hook::logs::write',
     'hook::package::read',
@@ -80,3 +81,7 @@ class Keys:
         for info in self.all(**opts):
             if info['hook_private_key'] == check_key:
                 return info
+
+
+if __name__=='__main__':
+    print('\n'.join(roles))

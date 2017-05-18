@@ -4,7 +4,7 @@ def test_domains(sdk):
     assert 'error' in res
     assert res['error'] is True
     assert res['type'] == 'unauthorized-role-access'
-    assert res['role'] == 'domain::find'
-    assert 'domain::find' in res['message']
+    assert res['role'] == 'domain::get'
+    assert 'domain::get' in res['message']
     res = sdk.domains.all()
     assert type(res) == list

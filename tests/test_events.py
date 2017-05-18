@@ -40,17 +40,30 @@ a `hook_private_key` parameter to access the service.\
 }
 
 
+def _cache_whoami(sdk):
+    if not sdk.hook_private_key:
+        return None
+    owner = getattr(sdk, 'owner', None)
+    if not owner:
+        owner = sdk.account.info()['name']
+        if owner:
+            sdk.owner = owner
+    return owner
+
+
 def test_events(sdk):
-    res = sdk.events.get('marak')
+    owner = _cache_whoami(sdk)
+    res = sdk.events.get(owner)
     assert type(res) == list
     prev_hit = max(row['time'] for row in res)
+    services = sdk.account.services(owner)
     # counters = itertools.groupby(sorted(res, key=lambda row:row['type']), lambda row:row['type'])
     # prev_counters = dict((k,len(list(v))) for k,v in counters)
 
     time.sleep(1)  # wait for time change
-    res = sdk.events.get('marak', anonymous=True)
+    res = sdk.events.get(owner, anonymous=True)
     assert res == get_error_model
-    res = sdk.hook.source('marak/echo')
+    res = sdk.hook.source('examples/echo')
     # source = res
     assert res.startswith("module['exports']")
     time.sleep(15)  # Wait for events processing on server side

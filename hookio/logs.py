@@ -3,7 +3,7 @@ import weakref
 import json
 import logging
 from .utils import opt_json, Response2JSONLinesIterator
-from six import StringIO
+from six import StringIO, string_types
 
 log = logging.getLogger(__name__)
 
@@ -16,8 +16,10 @@ class Logs:
         r = self.client.request('GET', url + '/logs', {}, **opts)
         res = opt_json(r, raw)
         if not raw and not raw_data and type(res) == list:
-            res = [json.loads(line) for line in res]
+            #res = [json.loads(line) for line in res]
             for row in res:
+                if isinstance(row, string_types):
+                    row = json.loads(row)
                 if 'data' in row:
                     row['data'] = json.loads(row['data'])
         return res

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import re
+import sys
 import time
 import requests
 import logging
@@ -95,18 +97,32 @@ def test_roles(cache):
     if roles is None:
         for i in range(max_retries):
             try:
-                r = requests.get('https://hook.io/roles')
-                r.raise_for_status()
-                text = r.text
-                p = RolesParser()
-                p.feed(text)
-                p.close()
-                assert p.roles
+                roles = request_roles()
             except Exception:
                 if i == max_retries-1:
                     raise
                 continue
-            roles = p.roles
             cache.set('hook.io/roles', [time.time(), roles])
             break
-    assert roles == hookio.keys.roles
+    assert roles == sorted(hookio.keys.roles)
+
+
+def request_roles():
+    r = requests.get('https://hook.io/roles')
+    r.raise_for_status()
+    text = r.text
+    if False:
+        p = RolesParser()
+        p.feed(text)
+        p.close()
+        roles = sorted(p.roles)
+    else:
+        roles = sorted(set(re.findall('>\\s*(\\w+(?:::\\w+)+)\\s*<', text)))
+    assert roles
+    return roles
+
+
+if __name__=='__main__':
+    roles = request_roles()
+    print('\n'.join(roles))
+    sys.stderr.write('%s\n' % (hookio.keys.roles == roles,))

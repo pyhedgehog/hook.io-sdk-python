@@ -9,7 +9,8 @@ unclutter_prefix = '%s-%08x' % (unclutter_prefix, random.randrange(0x10000000, 0
 
 def test_keys(sdk):
     res = sdk.keys.checkAccess({'role': 'keys::create'})
-    assert res == {'hasAccess': True}
+    assert 'hasAccess' in res
+    assert res['hasAccess'] == True
 
     res = sdk.keys.info()
     assert res

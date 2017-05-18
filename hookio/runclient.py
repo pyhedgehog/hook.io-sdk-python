@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import os
 import hookio
@@ -5,6 +6,7 @@ import argparse
 import functools
 import logging.config
 import json
+import six
 
 debug = '-d' in getattr(sys, 'argv', [])
 log = logging.getLogger(__name__)
@@ -23,6 +25,7 @@ def parse_argv(argv):
                    help='Skip https verification')
     p.add_argument('-s', dest='verify', action='store_true',
                    help='Force https verification')
+    p.add_argument('--key', '-K', dest='hook_private_key', help='API key')
     p.add_argument('--login', '-l', help='Login (instead of api-key) in form user:pass')
     p.set_defaults(obj=None, func=None, url=None, data=None, params=[])
     objects = p.add_subparsers(title='subcommands', dest='obj',
@@ -102,6 +105,9 @@ def parse_argv(argv):
     keys_checkAccess = keyscmds.add_parser('checkAccess', help='check if key has access to role')
     keys_checkAccess.add_argument('data_role', metavar='role', help='role to check')
     supports_data.add(('keys', 'checkAccess'))
+    keys_roles = keyscmds.add_parser('roles', help='list all roles of key')
+    keys_roles.add_argument('--verbose', '-v', action='store_true',
+                            help='Full list of available roles')
     keys_create = keyscmds.add_parser('create', help='create key')
     keys_create.add_argument('url', metavar='name', help='key name')
     keys_create.add_argument('data_roles', nargs='*', metavar='roles', help='key roles')
@@ -133,6 +139,13 @@ def parse_argv(argv):
     accountcmds = account.add_subparsers(title='subcommands', dest='func', help='sub-command help')
     account_services = accountcmds.add_parser('services', help='all hooks owned by this account')
     account_services.add_argument('url', nargs='?', metavar='owner', help='Name of user')
+    account_services.add_argument('--list', '-l', action='store_true',
+                                  help='Column list')
+    account_services.add_argument('--verbose', '-v', action='store_true',
+                                  help='Full list of available fields')
+    account_whoami = accountcmds.add_parser('whoami', help='current account info')
+    account_whoami.add_argument('--verbose', '-v', action='store_true',
+                                help='Full list of available fields')
     args = p.parse_args(argv[1:])
     log.debug('args=%r', args)
     if not args.obj:
@@ -161,27 +174,46 @@ def streaming_helper(s):
     sys.stdout.flush()
 
 
+def do_keys_roles(sdk, args):
+    import hookio.keys
+    #cache = None
+    for role in hookio.keys.roles:
+        #if cache is not None:
+        #    hasAccess = role in cache['key']['roles']
+        #    res = cache
+        #else:
+        res = sdk.keys.checkAccess(dict(role=role))
+        hasAccess = res.get('hasAccess', None)
+        #    if hasAccess and res.get('key',{}).get('hook_private_key', '-') == sdk.hook_private_key:
+        #        cache = res
+        if hasAccess or args.verbose:
+            print("%s=%s" % (role, hasAccess))
+
+
 def do_logs_read(sdk, args):
     r = sdk.logs.read(args.url, raw=args.raw)
     if args.raw:
         print(r.text)
         return
     for row in r:
-        process_log_row(json.loads(row), args.raw_data)
+        process_log_row(row, args.raw_data)
 
 
 def do_logs_stream(sdk, args):
     streaming = args.streaming
     if not args.raw:
         streaming = functools.partial(process_log_row, raw_data=args.raw_data)
-    sdk.logs.stream(args.url, streaming=streaming, raw=args.raw)
+    try:
+        sdk.logs.stream(args.url, streaming=streaming, raw=args.raw)
+    except KeyboardInterrupt:
+        pass
 
 
 def process_log_row(row, raw_data):
     ts = row.pop('time')
     ip = row.pop('ip')
     data = row.pop('data')
-    if not raw_data:
+    if not raw_data and isinstance(data, six.string_types):
         data = str(json.loads(data))
     assert not row
     print('[%s] %s %s' % (ts, ip, data))
@@ -189,8 +221,45 @@ def process_log_row(row, raw_data):
 
 
 def do_account_services(sdk, args):
-    for hook in sdk.account.services(args.url):
-        print(hook)
+    columns = ['model', 'owner', 'name', 'hits', 'language', 'sourceType',
+               'status', 'access   ', 'mode']
+    l = sdk.account.services(args.url)
+    if args.list:
+        width = [max(len(n),*(len(hook.get(n,'')) for hook in l))
+                 for n in columns]
+    for i,hook in enumerate(l):
+        if args.verbose or args.list:
+            hook['hits'] = sdk.metrics.hits(hook['owner']+'/'+hook['name'], raw=1).text
+        if args.verbose:
+            if i > 0:
+                print()
+            for name, value in sorted(hook.items()):
+                if name == 'source':
+                    continue
+                print('%s: %s' % (name, value))
+        elif args.list:
+            if i == 0:
+                line = ''
+                for n,w in zip(columns,width):
+                    line += n.ljust(w+2)
+                print(line.rstrip())
+            hook['access'] = [['unknown', 'private'][bool(hook.get('isPrivate'))],
+                              'public'][bool(hook.get('isPublic'))]
+            line = ''
+            for n,w in zip(columns,width):
+                line += str(hook.get(n.strip(),'')).ljust(w+2)
+            print(line.rstrip())
+        else:
+            print(hook['name'])
+
+
+def do_account_whoami(sdk, args):
+    res = sdk.account.info()
+    if args.verbose:
+        for name, value in res.items():
+            print('%s: %s' % (name, value))
+    else:
+        print(res['name'])
 
 
 def debug2logging(debug):
@@ -211,7 +280,7 @@ def main(argv=None):
     args = parse_argv(argv)
     debug2logging(args.debug)
     log.debug('args=%r', args)
-    sdk = hookio.createClient(dict(verify=args.verify))
+    sdk = hookio.createClient(dict(verify=args.verify, hook_private_key=args.hook_private_key))
     if args.login:
         res = sdk.account.login(*args.login.split(':', 1))
         assert res == {"result": "valid", "redirect": "/services"}

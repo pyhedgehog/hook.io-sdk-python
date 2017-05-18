@@ -19,7 +19,7 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
 [![Issues](https://img.shields.io/github/issues/pyhedgehog/hook.io-sdk-python.svg)](https://github/pyhedgehog/hook.io-sdk-python/issues)
 
 ### Roadmap
- - 0.0.* - implement hook.io-sdk replacement + (debug) additions (like `account.login`) + CLI + tests
+ - 0.0.* - implement hook.io-sdk replacement + (debug) additions (like `account.login`) + CLI + tests + examples
  - 0.1.* - implement `Hook` replacement (python-style layer) + compilehook
  - 0.2.* - python-style layer on client
  - 0.* - attempt to implement all [plans](#Current plans)
@@ -75,7 +75,7 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
   - [x] set
 - [x] Metrics
   - [x] hits
-- [ ] Domains - won't be added?
+- [ ] Domains
   - [x] all
   - [ ] create
   - [ ] destroy
@@ -116,8 +116,8 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
 
 ### Points in question
 
-- In original SDK [TO-DO section](https://github.com/bigcompany/hook.io-sdk#todo) there are "Better ENV exports configuration" entry. Maybe "support" or "import"?
-- In original SDK [TO-DO section](https://github.com/bigcompany/hook.io-sdk#todo) there are "Add all hook.io API Methods" entry. Where one can get list of _all_ methods?
+ - In original SDK [TO-DO section](https://github.com/bigcompany/hook.io-sdk#todo) there are "Better ENV exports configuration" entry. Maybe "support" or "import"?
+ - In original SDK [TO-DO section](https://github.com/bigcompany/hook.io-sdk#todo) there are "Add all hook.io API Methods" entry. Where one can get list of _all_ methods?
 
 ### Current plans
 
@@ -214,8 +214,30 @@ Misc status: [![TravisCI](https://travis-ci.org/pyhedgehog/hook.io-sdk-python.sv
  - CLI argument parsing is separated from library API. I.e. `argparse` specifics should be kept in `runclient.py`.
  - `helpers/compilehook.py` can concat library with hook that uses it.
 
-## Documentation Status
+## Documentation
+
+### Documentation Status
 
 There are no documentation yet - it's just several lists (plans, implemented parts, decisions).
 If someone want to add important documentation parts here - help will be appreciated.
 Also you are free to play in project wiki.
+
+### Handout
+
+ * You must create `Client` instance by `Client()` or `createClient()` call.
+ * If you are on server side (i.e. inside hook) you can create if using `install_hook_sdk()`.
+   This will also attempt to replace `__main__.Hook` variable with `hookio.utils.Namespace` instance
+   with additional field interface and `__main__.Hook.sdk` field referring `Client` instance.
+ * `Client` instance has lazy-import fields associated with modules - methods of these fields are public API.
+
+#### Revised API
+
+ * Most of `Client` public API corresponds to call to one URL. Such methods has `raw` parameter.
+   Default value of this parameter defers by methods - usually `False`, but can be `True` (i.e. for streaming methods).
+   If `raw=True` method will return `requests.Response` instance.
+   If `raw=False` method will return some object representation - usually result of JSON parse.
+   Exception is streaming interface.
+ * Some methods of public API supports streaming interface.
+   You can pass callable object as `streaming` parameter and it will be called for each line or object (depending on `raw`).
+   You can pass `streaming=True` and use `iter_lines()` or `iter_content()` methods of `requests.Response` instance.
+   Precise meaning of combinations of `streaming`, `raw` and other parameters may differ for each methods - look documentation and source.

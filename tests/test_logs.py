@@ -40,17 +40,17 @@ def test_logs(sdk):
     data_model = {"param1": "foo", "param2": "bar", unclutter_prefix: "test_logs"}
     cron_model = {"param1": "foo", "param2": "bar", "ranFromCron": "true"}
 
-    res = sdk.logs.read('marak/echo')
+    res = sdk.logs.read('examples/echo')
     assert type(res) == list
-    prev_hit = max(json.loads(row)['time'] for row in res)
+    prev_hit = max(row['time'] for row in res)
 
     time.sleep(1)  # wait for time change
-    res = sdk.hook.run('marak/echo', {unclutter_prefix: "test_logs"})
+    res = sdk.hook.run('examples/echo', data_model)
     assert res == data_model
 
     time.sleep(5)  # Wait for log events processing on server side
 
-    res = sdk.logs.read('marak/echo', raw=False, raw_data=False)
+    res = sdk.logs.read('examples/echo', raw=False, raw_data=False)
     assert type(res) == list
     assert max(row['time'] for row in res) > prev_hit
     assert any(row['data'] in (data_model, cron_model) for row in res)
@@ -129,7 +129,7 @@ def async_logs_stream_template(name, func_factory, line2obj, obj2data):
     assert sdk.hook_private_key
     q = queue.Queue()
     e = threading.Event()
-    func = functools.partial(sdk.logs.stream, 'marak/echo', chunk_size=1)
+    func = functools.partial(sdk.logs.stream, 'examples/echo', chunk_size=1)
     thread_func = func_factory(func, stream_process(q, e))
     t = threading.Thread(name=name, target=thread_func)
     t.daemon = 1
@@ -149,7 +149,7 @@ def async_logs_stream_template(name, func_factory, line2obj, obj2data):
         assert line
         obj = line2obj(line)
         assert 'time' in obj
-    res = sdk.hook.run('marak/echo', {unclutter_prefix: name}, anonymous=True)
+    res = sdk.hook.run('examples/echo', data_model, anonymous=True)
     assert res == data_model
     log.debug('%s-20: e.isSet=%s, q.qsize=%s, t.isAlive=%s',
               name, e.isSet(), q.qsize(), t.isAlive())
@@ -160,7 +160,7 @@ def async_logs_stream_template(name, func_factory, line2obj, obj2data):
         except queue.Empty:
             log.debug('%s-echo: e.isSet=%s, q.qsize=%s, t.isAlive=%s',
                       name, e.isSet(), q.qsize(), t.isAlive())
-            res = sdk.hook.run('marak/echo', {unclutter_prefix: name}, anonymous=True)
+            res = sdk.hook.run('examples/echo', data_model, anonymous=True)
             assert res == data_model
             continue
         assert line
@@ -278,9 +278,10 @@ def test_logs_stream_iter_reuse(sdk):
                 res.response.close()
                 iterobj.close()
         return functools.partial(stream_iter_thread, streaming, iter_factory)
+    data_model = {"param1": "foo", "param2": "bar", unclutter_prefix: "test_logs"}
     q = queue.Queue()
     e = threading.Event()
-    func = functools.partial(sdk.logs.stream, 'marak/echo', chunk_size=1)
+    func = functools.partial(sdk.logs.stream, 'examples/echo', chunk_size=1)
     thread_func = func_factory(func, stream_process(q, e))
     t = threading.Thread(name="test_logs_stream_iter_reuse", target=thread_func)
     t.daemon = 1
@@ -311,8 +312,8 @@ def test_logs_stream_iter_reuse(sdk):
     e.set()
     log.debug('%s-set: e.isSet=%s, q.qsize=%s, t.isAlive=%s',
               t.name, e.isSet(), q.qsize(), t.isAlive())
-    res = sdk.hook.run('marak/echo', {}, anonymous=True)
-    assert 'param1' in res
+    res = sdk.hook.run('examples/echo', data_model, anonymous=True)
+    assert data_model == res
     for i in itertools.count():
         assert i < 5
         try:

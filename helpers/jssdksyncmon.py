@@ -14,7 +14,7 @@ def main():
     pushtype = os.environ.get('pushtype', '')
     pushkey = os.environ.get('pushkey', '')
     repos = 'bigcompany/hook.io-sdk'
-    compare = 'pyhedgehog:master...master'
+    compare = 'pyhedgehog:master...dev'
     url = 'https://api.github.com/repos/%s/compare/%s' % (repos, compare)
     html_url = 'https://github.com/%s/compare/%s' % (repos, compare)
     r = requests.get(url)
@@ -22,7 +22,8 @@ def main():
     o = r.json()
     if not o['files']:
         return 0
-    html_url = o['permalink_url']
+    # html_url = o['permalink_url']
+    html_url = o['html_url']
     desc1, desc2, desc3 = [], [], dict(files=0, additions=0, deletions=0)
     for f in o['files']:
         if f['status'] == 'modified':
@@ -43,7 +44,9 @@ def main():
         client.add_key(pushkey)
         client.notify(desc, repos + ' update', False, dict(url=html_url))
     else:
-        print('\n'.join('diff --git {filename}\n{patch}\n'.format(**f) for f in o['files']))
+        print('\n'.join('diff --git {filename}\n{patch}\n'.format(**f)
+                        .replace('\n\\ No newline at end of file', '')
+                        for f in o['files'] if 'patch' in f))
         print(desc)
         print(html_url)
     return 1

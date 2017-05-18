@@ -20,8 +20,7 @@ def test_env(sdk):
     assert res is None or type(res) == dict
     res = sdk.env.set({key: val})
     assert type(res) == dict
-    assert key in res
-    assert res[key] == val
+    assert res == {'status': 'updated'}
     res = sdk.env.get()
     assert type(res) == dict
     assert key in res

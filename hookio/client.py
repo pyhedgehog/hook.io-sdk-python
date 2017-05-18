@@ -104,7 +104,7 @@ class Client:
                 params = json.dumps(params)
             data, params = params, {}
         else:
-            data, params = params, {}
+            data = None
         max_retries = self.max_retries or 1
         if self.supports_retries:
             max_retries = 1
